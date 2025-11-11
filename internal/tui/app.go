@@ -468,12 +468,11 @@ func (a *App) showSearchInput() {
 
 	searchInput := tview.NewInputField()
 	searchInput.SetLabel("Search: ")
-	searchInput.SetFieldWidth(50)
+	searchInput.SetFieldWidth(35)
+	// Use smaller label width to center the field within the form
+	searchInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 	searchInput.SetPlaceholder("Enter card name or search query (e.g., 'Lightning Bolt' or 'type:creature')")
 	searchInput.SetPlaceholderTextColor(tcell.ColorGray)
-	// Use SetFormAttributes to set all colors - this should control all states
-	// Parameters: labelWidth, labelColor, bgColor, fieldTextColor, fieldBgColor
-	searchInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	form.AddFormItem(searchInput)
 
@@ -525,7 +524,13 @@ func (a *App) showSearchInput() {
 		return event
 	})
 
-	a.pages.AddPage("search", form, true, true)
+	// Center the form horizontally only (keep vertical alignment consistent)
+	horizontalFlex := tview.NewFlex().
+		AddItem(nil, 0, 1, false).  // Left spacer
+		AddItem(form, 70, 0, true). // Form (fixed width, horizontally centered)
+		AddItem(nil, 0, 1, false)   // Right spacer
+
+	a.pages.AddPage("search", horizontalFlex, true, true)
 	a.pages.SwitchToPage("search")
 	a.app.SetFocus(form)
 }
@@ -555,11 +560,11 @@ func (a *App) showAdvancedSearch() {
 	// Name
 	nameInput := tview.NewInputField()
 	nameInput.SetLabel("Name: ")
-	nameInput.SetFieldWidth(40)
+	nameInput.SetFieldWidth(30)
 	nameInput.SetPlaceholder("Card name (e.g., Lightning Bolt)")
 	nameInput.SetPlaceholderTextColor(tcell.ColorGray)
-	// Use SetFormAttributes to set all colors consistently
-	nameInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	// Use smaller label width to center the field within the form
+	nameInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	// Type
 	typeInput := tview.NewInputField()
@@ -567,7 +572,7 @@ func (a *App) showAdvancedSearch() {
 	typeInput.SetFieldWidth(40)
 	typeInput.SetPlaceholder("t:creature (autocomplete available)")
 	typeInput.SetPlaceholderTextColor(tcell.ColorGray)
-	typeInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	typeInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 	// Add autocomplete for types
 	if len(a.uniqueTypes) > 0 {
 		typeInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueTypes))
@@ -576,49 +581,49 @@ func (a *App) showAdvancedSearch() {
 	// Color
 	colorInput := tview.NewInputField()
 	colorInput.SetLabel("Color: ")
-	colorInput.SetFieldWidth(40)
+	colorInput.SetFieldWidth(30)
 	colorInput.SetPlaceholder("c:r or c:uw (w/u/b/r/g)")
 	colorInput.SetPlaceholderTextColor(tcell.ColorGray)
-	colorInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	colorInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	// Oracle Text
 	oracleInput := tview.NewInputField()
 	oracleInput.SetLabel("Oracle Text: ")
-	oracleInput.SetFieldWidth(40)
+	oracleInput.SetFieldWidth(30)
 	oracleInput.SetPlaceholder("o:\"draw a card\"")
 	oracleInput.SetPlaceholderTextColor(tcell.ColorGray)
-	oracleInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	oracleInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	// Mana Cost
 	manaInput := tview.NewInputField()
 	manaInput.SetLabel("Mana Cost: ")
-	manaInput.SetFieldWidth(40)
+	manaInput.SetFieldWidth(30)
 	manaInput.SetPlaceholder("m:{G}{U} or mv<=3")
 	manaInput.SetPlaceholderTextColor(tcell.ColorGray)
-	manaInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	manaInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	// Power/Toughness
 	powerInput := tview.NewInputField()
 	powerInput.SetLabel("Power: ")
-	powerInput.SetFieldWidth(40)
+	powerInput.SetFieldWidth(30)
 	powerInput.SetPlaceholder("pow>=4 or pow>tou")
 	powerInput.SetPlaceholderTextColor(tcell.ColorGray)
-	powerInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	powerInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	toughnessInput := tview.NewInputField()
 	toughnessInput.SetLabel("Toughness: ")
-	toughnessInput.SetFieldWidth(40)
+	toughnessInput.SetFieldWidth(30)
 	toughnessInput.SetPlaceholder("tou>=4")
 	toughnessInput.SetPlaceholderTextColor(tcell.ColorGray)
-	toughnessInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	toughnessInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	// Set
 	setInput := tview.NewInputField()
 	setInput.SetLabel("Set: ")
-	setInput.SetFieldWidth(40)
+	setInput.SetFieldWidth(30)
 	setInput.SetPlaceholder("s:khm (autocomplete available)")
 	setInput.SetPlaceholderTextColor(tcell.ColorGray)
-	setInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	setInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 	// Add autocomplete for sets
 	if len(a.uniqueSets) > 0 {
 		setInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueSets))
@@ -627,10 +632,10 @@ func (a *App) showAdvancedSearch() {
 	// Rarity
 	rarityInput := tview.NewInputField()
 	rarityInput.SetLabel("Rarity: ")
-	rarityInput.SetFieldWidth(40)
+	rarityInput.SetFieldWidth(30)
 	rarityInput.SetPlaceholder("r:rare (autocomplete available)")
 	rarityInput.SetPlaceholderTextColor(tcell.ColorGray)
-	rarityInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	rarityInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 	// Add autocomplete for rarities
 	if len(a.uniqueRarities) > 0 {
 		rarityInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueRarities))
@@ -639,26 +644,26 @@ func (a *App) showAdvancedSearch() {
 	// Year
 	yearInput := tview.NewInputField()
 	yearInput.SetLabel("Year: ")
-	yearInput.SetFieldWidth(40)
+	yearInput.SetFieldWidth(30)
 	yearInput.SetPlaceholder("year>=2020")
 	yearInput.SetPlaceholderTextColor(tcell.ColorGray)
-	yearInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	yearInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	// Artist
 	artistInput := tview.NewInputField()
 	artistInput.SetLabel("Artist: ")
-	artistInput.SetFieldWidth(40)
+	artistInput.SetFieldWidth(30)
 	artistInput.SetPlaceholder("a:avon")
 	artistInput.SetPlaceholderTextColor(tcell.ColorGray)
-	artistInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	artistInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	// Keyword
 	keywordInput := tview.NewInputField()
 	keywordInput.SetLabel("Keyword: ")
-	keywordInput.SetFieldWidth(40)
+	keywordInput.SetFieldWidth(30)
 	keywordInput.SetPlaceholder("kw:flying (autocomplete available)")
 	keywordInput.SetPlaceholderTextColor(tcell.ColorGray)
-	keywordInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	keywordInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 	// Add autocomplete for keywords
 	if len(a.uniqueKeywords) > 0 {
 		keywordInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueKeywords))
@@ -667,10 +672,10 @@ func (a *App) showAdvancedSearch() {
 	// Special flags
 	isInput := tview.NewInputField()
 	isInput.SetLabel("Is: ")
-	isInput.SetFieldWidth(40)
+	isInput.SetFieldWidth(30)
 	isInput.SetPlaceholder("is:multicolor, is:spell, is:permanent")
 	isInput.SetPlaceholderTextColor(tcell.ColorGray)
-	isInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	isInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
 	form.AddFormItem(nameInput)
 	form.AddFormItem(typeInput)
@@ -833,7 +838,13 @@ func (a *App) showAdvancedSearch() {
 		return event
 	})
 
-	a.pages.AddPage("advanced", form, true, true)
+	// Center the form horizontally only (keep vertical alignment consistent)
+	horizontalFlex := tview.NewFlex().
+		AddItem(nil, 0, 1, false).  // Left spacer
+		AddItem(form, 90, 0, true). // Form (fixed width, wider for advanced, horizontally centered)
+		AddItem(nil, 0, 1, false)   // Right spacer
+
+	a.pages.AddPage("advanced", horizontalFlex, true, true)
 	a.pages.SwitchToPage("advanced")
 	a.app.SetFocus(form)
 }
