@@ -33,11 +33,16 @@ func (a *App) showSearchInput() {
 
 	form.AddFormItem(searchInput)
 
+	// Vim-style insert mode state
+	insertMode := false
+	currentFieldIndex := 0 // 0 = input field, 1+ = buttons
+
 	// Force form to apply field colors after adding item
 	form.SetFieldTextColor(tcell.ColorWhite)
 	form.SetFieldBackgroundColor(tcell.ColorDarkGray)
 
-	form.AddButton("Search", func() {
+	// Store search callback for Enter key shortcut
+	searchCallback := func() {
 		query := strings.TrimSpace(searchInput.GetText())
 		if query == "" {
 			// Show warning modal instead of crashing
@@ -55,16 +60,38 @@ func (a *App) showSearchInput() {
 		a.currentQuery = query
 		a.currentPage = 1
 		a.showCardList()
-	})
+	}
 
-	form.AddButton("Back", func() {
+	// Store back callback for ESC key shortcut
+	backCallback := func() {
+		// Remove the search page first
+		if a.pages.HasPage("search") {
+			a.pages.RemovePage("search")
+		}
 		// Force a full redraw by recreating the menu
 		a.showMainMenu()
-	})
+	}
+
+	form.AddButton("Search (Enter)", searchCallback)
+	form.AddButton("Back (Esc)", backCallback)
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// In insert mode, allow normal input except ESC to exit
+		if insertMode {
+			if event.Key() == tcell.KeyEscape {
+				// ESC exits insert mode
+				insertMode = false
+				// Update title to show normal mode
+				form.SetTitle(" [yellow]Search for Card[white] ")
+				return nil
+			}
+			// Allow all other input in insert mode
+			return event
+		}
+
+		// Normal mode - handle navigation and mode switching
 		if event.Key() == tcell.KeyEscape {
-			// Handle ESC similar to card list - check if menu exists first
+			// ESC goes back to menu
 			if a.pages.HasPage("search") {
 				a.pages.RemovePage("search")
 			}
@@ -78,6 +105,39 @@ func (a *App) showSearchInput() {
 			}
 			return nil
 		}
+		if event.Key() == tcell.KeyEnter {
+			// Enter triggers Search button
+			searchCallback()
+			return nil
+		}
+		if event.Key() == tcell.KeyRune {
+			switch event.Rune() {
+			case 'i':
+				// Enter insert mode
+				insertMode = true
+				form.SetTitle(" [yellow]Search for Card[white] [gray](INSERT)[white] ")
+				// Set focus to the input field for immediate editing
+				a.app.SetFocus(searchInput)
+				return nil
+			case 'j':
+				// Move to next field (or button)
+				if currentFieldIndex == 0 {
+					currentFieldIndex = 1
+					form.SetFocus(1) // Move to Search button
+				}
+				return nil
+			case 'k':
+				// Move to previous field (or button)
+				if currentFieldIndex > 0 {
+					currentFieldIndex = 0
+					form.SetFocus(0) // Move to input field
+				}
+				return nil
+			}
+			// Block all other text input in normal mode
+			return nil
+		}
+		// Allow Tab/Shift+Tab for navigation
 		return event
 	})
 
@@ -253,7 +313,18 @@ func (a *App) showAdvancedSearch() {
 	form.SetFieldTextColor(tcell.ColorWhite)
 	form.SetFieldBackgroundColor(tcell.ColorDarkGray)
 
-	form.AddButton("Search", func() {
+	// Vim-style insert mode state
+	insertMode := false
+	// Store all input fields for navigation
+	inputFields := []*tview.InputField{
+		nameInput, typeInput, colorInput, oracleInput, manaInput,
+		powerInput, toughnessInput, setInput, rarityInput,
+		yearInput, artistInput, keywordInput, isInput,
+	}
+	currentFieldIndex := 0
+
+	// Store search callback for Enter key shortcut
+	searchCallback := func() {
 		// Build query from all fields
 		var queryParts []string
 
@@ -353,9 +424,10 @@ func (a *App) showAdvancedSearch() {
 		a.currentQuery = query
 		a.currentPage = 1
 		a.showCardList()
-	})
+	}
 
-	form.AddButton("Clear", func() {
+	// Store clear callback for Ctrl+D shortcut
+	clearCallback := func() {
 		nameInput.SetText("")
 		typeInput.SetText("")
 		colorInput.SetText("")
@@ -369,16 +441,45 @@ func (a *App) showAdvancedSearch() {
 		artistInput.SetText("")
 		keywordInput.SetText("")
 		isInput.SetText("")
-	})
+	}
 
-	form.AddButton("Back", func() {
+	// Store back callback for ESC key shortcut
+	backCallback := func() {
 		// Force a full redraw by recreating the menu
 		a.showMainMenu()
-	})
+	}
+
+	form.AddButton("Search (Enter)", searchCallback)
+	form.AddButton("Clear (Ctrl+D)", clearCallback)
+	form.AddButton("Back (Esc)", backCallback)
+
+	// Helper function to update title based on mode
+	updateTitle := func() {
+		if insertMode {
+			form.SetTitle(" [yellow]Advanced Search (Scryfall Syntax)[white] [gray](INSERT)[white] ")
+		} else {
+			form.SetTitle(" [yellow]Advanced Search (Scryfall Syntax)[white] ")
+		}
+	}
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// In insert mode, allow normal input except ESC to exit
+		if insertMode {
+			if event.Key() == tcell.KeyEscape {
+				// ESC exits insert mode
+				insertMode = false
+				updateTitle()
+				// Return focus to form
+				a.app.SetFocus(form)
+				return nil
+			}
+			// Allow all other input in insert mode
+			return event
+		}
+
+		// Normal mode - handle navigation and mode switching
 		if event.Key() == tcell.KeyEscape {
-			// Handle ESC similar to card list - check if menu exists first
+			// ESC goes back to menu
 			if a.pages.HasPage("advanced") {
 				a.pages.RemovePage("advanced")
 			}
@@ -391,6 +492,58 @@ func (a *App) showAdvancedSearch() {
 				a.showMainMenu()
 			}
 			return nil
+		}
+		if event.Key() == tcell.KeyEnter {
+			// Enter triggers Search button
+			searchCallback()
+			return nil
+		}
+		if event.Key() == tcell.KeyCtrlD {
+			// Ctrl+D triggers Clear button
+			clearCallback()
+			return nil
+		}
+		if event.Key() == tcell.KeyRune {
+			switch event.Rune() {
+			case 'i':
+				// Enter insert mode on current field
+				insertMode = true
+				updateTitle()
+				// Focus the current field for immediate editing
+				if currentFieldIndex < len(inputFields) {
+					a.app.SetFocus(inputFields[currentFieldIndex])
+				}
+				return nil
+			case 'j':
+				// Move to next field
+				if currentFieldIndex < len(inputFields)-1 {
+					currentFieldIndex++
+					form.SetFocus(currentFieldIndex)
+				} else {
+					// Move to first button
+					form.SetFocus(len(inputFields))
+				}
+				return nil
+			case 'k':
+				// Move to previous field
+				if currentFieldIndex > 0 {
+					currentFieldIndex--
+					form.SetFocus(currentFieldIndex)
+				} else {
+					// Wrap to last field
+					currentFieldIndex = len(inputFields) - 1
+					form.SetFocus(currentFieldIndex)
+				}
+				return nil
+			}
+			// Block all other text input in normal mode
+			return nil
+		}
+		// Allow Tab/Shift+Tab for navigation
+		if event.Key() == tcell.KeyTab {
+			// Tab navigation - update currentFieldIndex after navigation
+			// We'll track this by checking which item has focus after Tab
+			return event
 		}
 		return event
 	})
@@ -405,4 +558,3 @@ func (a *App) showAdvancedSearch() {
 	a.pages.SwitchToPage("advanced")
 	a.app.SetFocus(form)
 }
-
