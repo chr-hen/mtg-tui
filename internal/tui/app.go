@@ -19,7 +19,6 @@ type App struct {
 	cards        []api.Card
 	cardGroups   []CardGroup // Grouped cards for display
 	pagination   api.PaginationInfo
-	list         *tview.List
 	table        *tview.Table
 	menu         *tview.List
 	pages        *tview.Pages
@@ -32,7 +31,7 @@ type App struct {
 	uniqueRarities []string
 	uniqueKeywords []string
 	// Sorting
-	sortField    string // "name", "released", "set", "rarity", "color", "cmc", "power", "toughness"
+	sortField     string // "name", "released", "set", "rarity", "color", "cmc", "power", "toughness"
 	sortAscending bool
 	// Settings
 	settings *Settings
@@ -42,7 +41,7 @@ func NewApp() *App {
 	app := tview.NewApplication()
 	// Enable mouse support and configure input properly
 	app.EnableMouse(false)
-	
+
 	// Load settings
 	settings, err := LoadSettings()
 	if err != nil {
@@ -52,7 +51,7 @@ func NewApp() *App {
 			ShowTypeCard:   false,
 		}
 	}
-	
+
 	a := &App{
 		app:              app,
 		currentPage:      1,
