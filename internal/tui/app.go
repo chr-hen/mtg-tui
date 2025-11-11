@@ -292,13 +292,13 @@ func (a *App) showMainMenu() {
 		a.pages.RemovePage("advanced")
 	}
 
-	// Create ASCII art for MTG-TUI with color
-	asciiArt := `[yellow]███╗   ███╗[white]████████╗ ██████╗     [yellow]███████╗[white]██╗   ██╗██╗
-[yellow]████╗ ████║[white]╚══██╔══╝██╔════╝     [yellow]╚══██╔══╝[white]██║   ██║██║
-[yellow]██╔████╔██║[white]   ██║   ██║            [yellow]   ██║   [white]██║   ██║██║
-[yellow]██║╚██╔╝██║[white]   ██║   ██║            [yellow]   ██║   [white]██║   ██║██║
-[yellow]██║ ╚═╝ ██║[white]   ██║   ╚██████╗       [yellow]   ██║   [white]╚██████╔╝██║
-[yellow]╚═╝     ╚═╝[white]   ╚═╝    ╚═════╝       [yellow]   ╚═╝   [white]╚═════╝ ╚═╝`
+	asciiArt := `
+  __  __ _____ ____   _____ _   _ ___ 
+ |  \/  |_   _/ ___| |_   _| | | |_ _|
+ | |\/| | | || |  _    | | | | | || | 
+ | |  | | | || |_| |   | | | |_| || | 
+ |_|  |_| |_| \____|   |_|  \___/|___|
+`
 
 	// Create text view for ASCII art
 	artView := tview.NewTextView().
@@ -308,7 +308,7 @@ func (a *App) showMainMenu() {
 
 	// Create subtitle with styling
 	subtitle := tview.NewTextView().
-		SetText("[gray]Magic: The Gathering Card Browser[white]").
+		SetText("[gray]Magic: The Gathering Card - Text User Interface[white]").
 		SetTextAlign(tview.AlignCenter).
 		SetDynamicColors(true)
 
