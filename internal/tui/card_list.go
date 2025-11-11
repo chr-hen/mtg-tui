@@ -2,7 +2,10 @@ package tui
 
 import (
 	"fmt"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/chr-hen/mtg-tui/internal/api"
 	"github.com/gdamore/tcell/v2"
@@ -29,9 +32,17 @@ func (a *App) showCardList() {
 			a.pages.AddPage("error", modal, true, true)
 			return
 		}
+		// Sort the cards according to current sort settings
+		a.sortCards(&allCards)
 		// Cache all matching cards
 		a.allMatchingCards[a.currentQuery] = allCards
 		// Initialize page cache for this query
+		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
+	} else {
+		// Re-sort cached cards if sort settings changed
+		a.sortCards(&allCards)
+		a.allMatchingCards[a.currentQuery] = allCards
+		// Clear page cache when sort changes
 		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
 	}
 
@@ -140,6 +151,24 @@ func (a *App) showCardList() {
 				}
 				return nil
 			}
+			if rune == 's' {
+				// Cycle through sort options
+				a.cycleSortField()
+				return nil
+			}
+			if rune == 'S' {
+				// Toggle sort direction
+				a.sortAscending = !a.sortAscending
+				// Re-sort and refresh
+				if allCards, exists := a.allMatchingCards[a.currentQuery]; exists {
+					a.sortCards(&allCards)
+					a.allMatchingCards[a.currentQuery] = allCards
+					a.pageCache[a.currentQuery] = make(map[int][]api.Card)
+					a.currentPage = 1
+					a.showCardList()
+				}
+				return nil
+			}
 		}
 
 		return event
@@ -171,14 +200,78 @@ func (a *App) showCardList() {
 		}
 	})
 
+	// Create footer using Box with custom drawing to ensure text is visible
+	footerText := "s: sort | S: direction | j/k: navigate | h/l: pages | Enter: details | Esc: back"
+	footerBox := tview.NewBox().
+		SetBorder(true).
+		SetBorderColor(tcell.ColorYellow).
+		SetTitle(" Controls ").
+		SetTitleColor(tcell.ColorYellow)
+
+	// Store footerText in closure for the draw function
+	footerTextForDraw := footerText
+	footerBox.SetDrawFunc(func(screen tcell.Screen, x, y, width, height int) (int, int, int, int) {
+		// Draw border manually to ensure it's visible
+		defStyle := tcell.StyleDefault.Foreground(tcell.ColorYellow).Background(tcell.ColorBlack)
+
+		// Draw horizontal lines
+		for i := x + 1; i < x+width-1; i++ {
+			screen.SetContent(i, y, '─', nil, defStyle)
+			screen.SetContent(i, y+height-1, '─', nil, defStyle)
+		}
+
+		// Draw vertical lines
+		for i := y + 1; i < y+height-1; i++ {
+			screen.SetContent(x, i, '│', nil, defStyle)
+			screen.SetContent(x+width-1, i, '│', nil, defStyle)
+		}
+
+		// Draw corners
+		screen.SetContent(x, y, '┌', nil, defStyle)
+		screen.SetContent(x+width-1, y, '┐', nil, defStyle)
+		screen.SetContent(x, y+height-1, '└', nil, defStyle)
+		screen.SetContent(x+width-1, y+height-1, '┘', nil, defStyle)
+
+		// Draw title on top border
+		title := " Controls "
+		titleX := x + 2
+		if titleX+len(title) < x+width-2 {
+			for i, r := range title {
+				screen.SetContent(titleX+i, y, r, nil, tcell.StyleDefault.Foreground(tcell.ColorYellow).Background(tcell.ColorBlack))
+			}
+		}
+
+		// Get inner rectangle (area inside border)
+		innerX := x + 1
+		innerY := y + 1
+		innerWidth := width - 2
+		innerHeight := height - 2
+
+		// Draw text centered in the inner area
+		textY := innerY + (innerHeight / 2)
+		if textY >= innerY && textY < innerY+innerHeight && innerHeight > 0 && innerWidth > 0 {
+			// Use Print to draw the text with white color
+			tview.Print(screen, footerTextForDraw, innerX, textY, innerWidth, tview.AlignCenter, tcell.ColorWhite)
+		}
+
+		return innerX, innerY, innerWidth, innerHeight
+	})
+
+	footer := footerBox
+
+	// Create a flex container with table and footer
+	mainFlex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(a.table, 0, 1, true). // Table takes remaining space
+		AddItem(footer, 5, 0, false)  // Footer with fixed height
+
 	// Remove old list page if it exists
 	if a.pages.HasPage("list") {
 		a.pages.RemovePage("list")
 	}
 
-	// Add new table page
-	a.pages.AddPage("list", a.table, true, true)
-	a.pages.SwitchToPage("list")
+	// Add new table page with footer
+	a.pages.AddPage("list", mainFlex, true, true)
 
 	// Set focus
 	a.app.SetFocus(a.table)
@@ -265,15 +358,36 @@ func (a *App) updateListTitle() {
 		}
 	}
 
+	// Get sort field display name
+	sortFieldNames := map[string]string{
+		"name":      "Name",
+		"released":  "Release Date",
+		"set":       "Set/Number",
+		"rarity":    "Rarity",
+		"color":     "Color",
+		"cmc":       "Mana Value",
+		"power":     "Power",
+		"toughness": "Toughness",
+	}
+	sortFieldDisplay := sortFieldNames[a.sortField]
+	if sortFieldDisplay == "" {
+		sortFieldDisplay = "Name"
+	}
+	sortDir := "↑"
+	if !a.sortAscending {
+		sortDir = "↓"
+	}
+
 	title := fmt.Sprintf("MTG Cards - Page %d/%d", a.currentPage, totalPages)
 	if a.currentQuery != "" {
 		// Truncate long queries
 		queryDisplay := a.currentQuery
-		if len(queryDisplay) > 40 {
-			queryDisplay = queryDisplay[:37] + "..."
+		if len(queryDisplay) > 25 {
+			queryDisplay = queryDisplay[:22] + "..."
 		}
 		title += fmt.Sprintf(" | Query: %s", queryDisplay)
 	}
+	title += fmt.Sprintf(" | Sort: %s %s", sortFieldDisplay, sortDir)
 	if a.pagination.TotalCards > 0 {
 		title += fmt.Sprintf(" | Total: %d", a.pagination.TotalCards)
 	}
@@ -291,4 +405,172 @@ func (a *App) handleVimKeys(event *tcell.EventKey) *tcell.EventKey {
 	// VIM keys are now handled directly in showCardList's SetInputCapture
 	// This method is kept for compatibility but not actively used
 	return event
+}
+
+// cycleSortField cycles through available sort fields
+func (a *App) cycleSortField() {
+	sortFields := []string{"name", "released", "set", "rarity", "color", "cmc", "power", "toughness"}
+	currentIdx := -1
+	for i, field := range sortFields {
+		if field == a.sortField {
+			currentIdx = i
+			break
+		}
+	}
+	if currentIdx == -1 {
+		a.sortField = "name"
+	} else {
+		nextIdx := (currentIdx + 1) % len(sortFields)
+		a.sortField = sortFields[nextIdx]
+	}
+	// Re-sort and refresh
+	if allCards, exists := a.allMatchingCards[a.currentQuery]; exists {
+		a.sortCards(&allCards)
+		a.allMatchingCards[a.currentQuery] = allCards
+		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
+		a.currentPage = 1
+		a.showCardList()
+	}
+}
+
+// sortCards sorts cards according to the current sort field and direction
+func (a *App) sortCards(cards *[]api.Card) {
+	sort.Slice(*cards, func(i, j int) bool {
+		less := a.compareCards((*cards)[i], (*cards)[j])
+		if !a.sortAscending {
+			return !less
+		}
+		return less
+	})
+}
+
+// compareCards compares two cards based on the current sort field
+func (a *App) compareCards(card1, card2 api.Card) bool {
+	switch a.sortField {
+	case "name":
+		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
+	case "released":
+		// Parse release dates and compare
+		date1, err1 := time.Parse("2006-01-02", card1.ReleasedAt)
+		date2, err2 := time.Parse("2006-01-02", card2.ReleasedAt)
+		if err1 != nil && err2 != nil {
+			return false
+		}
+		if err1 != nil {
+			return false
+		}
+		if err2 != nil {
+			return true
+		}
+		return date1.Before(date2)
+	case "set":
+		// Sort by set code, then collector number
+		if card1.SetCode != card2.SetCode {
+			return card1.SetCode < card2.SetCode
+		}
+		return compareCollectorNumbers(card1.CollectorNumber, card2.CollectorNumber)
+	case "rarity":
+		// Rarity order: Common < Uncommon < Rare < Mythic
+		rarityOrder := map[string]int{
+			"common":   1,
+			"uncommon": 2,
+			"rare":     3,
+			"mythic":   4,
+		}
+		rarity1 := rarityOrder[strings.ToLower(card1.Rarity)]
+		rarity2 := rarityOrder[strings.ToLower(card2.Rarity)]
+		if rarity1 == 0 {
+			rarity1 = 99
+		}
+		if rarity2 == 0 {
+			rarity2 = 99
+		}
+		if rarity1 != rarity2 {
+			return rarity1 < rarity2
+		}
+		// If same rarity, sort by name
+		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
+	case "color":
+		// Sort by number of colors, then by color identity
+		if len(card1.Colors) != len(card2.Colors) {
+			return len(card1.Colors) < len(card2.Colors)
+		}
+		// If same number of colors, compare color identity strings
+		colors1 := strings.Join(card1.Colors, "")
+		colors2 := strings.Join(card2.Colors, "")
+		if colors1 != colors2 {
+			return colors1 < colors2
+		}
+		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
+	case "cmc":
+		if card1.CMC != card2.CMC {
+			return card1.CMC < card2.CMC
+		}
+		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
+	case "power":
+		power1, err1 := parsePowerToughness(card1.Power)
+		power2, err2 := parsePowerToughness(card2.Power)
+		if err1 != nil && err2 != nil {
+			return false
+		}
+		if err1 != nil {
+			return false
+		}
+		if err2 != nil {
+			return true
+		}
+		if power1 != power2 {
+			return power1 < power2
+		}
+		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
+	case "toughness":
+		tough1, err1 := parsePowerToughness(card1.Toughness)
+		tough2, err2 := parsePowerToughness(card2.Toughness)
+		if err1 != nil && err2 != nil {
+			return false
+		}
+		if err1 != nil {
+			return false
+		}
+		if err2 != nil {
+			return true
+		}
+		if tough1 != tough2 {
+			return tough1 < tough2
+		}
+		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
+	default:
+		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
+	}
+}
+
+// compareCollectorNumbers compares two collector numbers (helper function)
+func compareCollectorNumbers(a, b string) bool {
+	// Try to parse as integers first
+	numA, errA := strconv.Atoi(a)
+	numB, errB := strconv.Atoi(b)
+
+	// If both are numeric, compare numerically
+	if errA == nil && errB == nil {
+		return numA < numB
+	}
+
+	// If one is numeric and one isn't, numeric comes first
+	if errA == nil && errB != nil {
+		return true
+	}
+	if errA != nil && errB == nil {
+		return false
+	}
+
+	// Both are alphanumeric, compare as strings
+	return strings.ToLower(a) < strings.ToLower(b)
+}
+
+// parsePowerToughness parses power/toughness values, handling * and other special values
+func parsePowerToughness(value string) (float64, error) {
+	if value == "" || value == "*" {
+		return 0, fmt.Errorf("cannot parse special value")
+	}
+	return strconv.ParseFloat(value, 64)
 }

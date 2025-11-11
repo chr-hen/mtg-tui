@@ -7,9 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 var (
@@ -181,40 +178,9 @@ func GetAllMatchingCards(query string) ([]Card, error) {
 		}
 	}
 
-	// Sort results by set code, then by collector number
-	sort.Slice(matchingCards, func(i, j int) bool {
-		// First sort by set code
-		if matchingCards[i].SetCode != matchingCards[j].SetCode {
-			return matchingCards[i].SetCode < matchingCards[j].SetCode
-		}
-		// Then sort by collector number (handle numeric and alphanumeric)
-		return compareCollectorNumbers(matchingCards[i].CollectorNumber, matchingCards[j].CollectorNumber)
-	})
-
+	// Note: Sorting is now handled by the TUI layer based on user preferences
+	// Default sort is by name, which will be applied in showCardList
 	return matchingCards, nil
-}
-
-// compareCollectorNumbers compares two collector numbers, handling both numeric and alphanumeric values
-func compareCollectorNumbers(a, b string) bool {
-	// Try to parse as integers first
-	numA, errA := strconv.Atoi(a)
-	numB, errB := strconv.Atoi(b)
-	
-	// If both are numeric, compare numerically
-	if errA == nil && errB == nil {
-		return numA < numB
-	}
-	
-	// If one is numeric and one isn't, numeric comes first
-	if errA == nil && errB != nil {
-		return true
-	}
-	if errA != nil && errB == nil {
-		return false
-	}
-	
-	// Both are alphanumeric, compare as strings
-	return strings.ToLower(a) < strings.ToLower(b)
 }
 
 // SearchCardsLocal searches through the local card cache using a simple query

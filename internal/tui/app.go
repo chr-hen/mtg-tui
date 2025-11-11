@@ -24,6 +24,9 @@ type App struct {
 	uniqueSets     []string
 	uniqueRarities []string
 	uniqueKeywords []string
+	// Sorting
+	sortField    string // "name", "released", "set", "rarity", "color", "cmc", "power", "toughness"
+	sortAscending bool
 }
 
 func NewApp() *App {
@@ -40,6 +43,8 @@ func NewApp() *App {
 		uniqueSets:       []string{},
 		uniqueRarities:   []string{},
 		uniqueKeywords:   []string{},
+		sortField:        "name", // Default to name sort
+		sortAscending:    true,
 	}
 
 	// Load autocomplete data in background
