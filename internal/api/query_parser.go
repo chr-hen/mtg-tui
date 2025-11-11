@@ -101,9 +101,14 @@ func parseCondition(part string, negate bool) *QueryCondition {
 	if strings.Contains(part, ":") {
 		parts := strings.SplitN(part, ":", 2)
 		if len(parts) == 2 {
+			value := strings.Trim(parts[1], `"`)
+			// Skip conditions with empty values
+			if value == "" {
+				return nil
+			}
 			return &QueryCondition{
-				Field:    parts[0],
-				Value:    strings.Trim(parts[1], `"`),
+				Field:    strings.ToLower(parts[0]), // Normalize field name to lowercase
+				Value:    value,
 				Negate:   negate,
 				Operator: "equals",
 			}

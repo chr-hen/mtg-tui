@@ -374,6 +374,10 @@ func (a *App) showAdvancedSearch() {
 			}
 		}
 		if set := strings.TrimSpace(setInput.GetText()); set != "" {
+			// If set value contains spaces, quote it to preserve as single token
+			if strings.Contains(set, " ") && !strings.HasPrefix(set, `"`) && !strings.HasSuffix(set, `"`) {
+				set = `"` + set + `"`
+			}
 			if !strings.HasPrefix(set, "s:") && !strings.HasPrefix(set, "set:") && !strings.HasPrefix(set, "e:") {
 				queryParts = append(queryParts, "s:"+set)
 			} else {
