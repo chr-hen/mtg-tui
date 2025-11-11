@@ -210,7 +210,7 @@ func (a *App) populateList() {
 		a.table.SetCell(row, 0, cell)
 		row++
 
-		// Row 3: Rarity • Mana Cost • Set: SetCode (gray)
+		// Row 3: Rarity • Mana Cost • Set: SetCode • SetNum: xx/xx (gray)
 		infoParts := []string{}
 		if card.Rarity != "" {
 			rarity := strings.ToLower(card.Rarity)
@@ -224,6 +224,14 @@ func (a *App) populateList() {
 		}
 		if card.SetCode != "" {
 			infoParts = append(infoParts, fmt.Sprintf("Set: %s", card.SetCode))
+		}
+		// Add collector number if available
+		if card.CollectorNumber != "" {
+			setNumStr := card.CollectorNumber
+			if card.SetSize > 0 {
+				setNumStr = fmt.Sprintf("%s/%d", card.CollectorNumber, card.SetSize)
+			}
+			infoParts = append(infoParts, fmt.Sprintf("SetNum: %s", setNumStr))
 		}
 
 		infoLine := strings.Join(infoParts, " • ")

@@ -2,23 +2,25 @@ package api
 
 // Card represents a simplified MTG card from Scryfall
 type Card struct {
-	Name        string   `json:"name"`
-	ManaCost    string   `json:"mana_cost"`
-	TypeLine    string   `json:"type_line"`
-	OracleText  string   `json:"oracle_text"`
-	Set         string   `json:"set_name"`
-	SetCode     string   `json:"set"`
-	Rarity      string   `json:"rarity"`
-	Power       string   `json:"power"`
-	Toughness   string   `json:"toughness"`
-	Loyalty     string   `json:"loyalty"`
-	CMC         float64  `json:"cmc"`
-	Colors      []string `json:"colors"`
-	ColorIdentity []string `json:"color_identity"`
-	Keywords    []string `json:"keywords"`
-	FlavorText  string   `json:"flavor_text"`
-	Artist      string   `json:"artist"`
-	ReleasedAt  string   `json:"released_at"`
+	Name           string   `json:"name"`
+	ManaCost       string   `json:"mana_cost"`
+	TypeLine       string   `json:"type_line"`
+	OracleText     string   `json:"oracle_text"`
+	Set            string   `json:"set_name"`
+	SetCode        string   `json:"set"`
+	CollectorNumber string   `json:"collector_number"`
+	SetSize        int      `json:"set_size"`
+	Rarity         string   `json:"rarity"`
+	Power          string   `json:"power"`
+	Toughness      string   `json:"toughness"`
+	Loyalty        string   `json:"loyalty"`
+	CMC            float64  `json:"cmc"`
+	Colors         []string `json:"colors"`
+	ColorIdentity  []string `json:"color_identity"`
+	Keywords       []string `json:"keywords"`
+	FlavorText     string   `json:"flavor_text"`
+	Artist         string   `json:"artist"`
+	ReleasedAt     string   `json:"released_at"`
 }
 
 // PaginationInfo contains pagination metadata from Scryfall API
