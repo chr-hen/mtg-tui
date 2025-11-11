@@ -306,9 +306,11 @@ func (a *App) populateList() {
 		row++
 
 		// Add blank row separator (except after last card)
+		// Use a space character instead of empty string to ensure it's visible but non-interactive
 		if i < len(a.cardGroups)-1 {
-			cell = tview.NewTableCell("").
-				SetSelectable(false)
+			cell = tview.NewTableCell(" ").
+				SetSelectable(false).
+				SetExpansion(1)
 			a.table.SetCell(row, 0, cell)
 			row++
 		}

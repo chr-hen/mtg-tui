@@ -49,7 +49,7 @@ func (a *App) showMainMenu() {
 		nil, // separator
 		func() { a.showAdvancedSearch() },
 		nil, // separator
-		func() { a.showCollection() },
+		func() { a.showCollectionMenu() },
 		nil, // separator
 		func() { a.showSettingsScreen() },
 		nil, // separator
@@ -60,7 +60,7 @@ func (a *App) showMainMenu() {
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
 		AddItem("Advanced Search", "Use Scryfall syntax for detailed filtering", 'a', callbacks[2]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("My Collection", "View your owned cards", 'm', callbacks[4]).
+		AddItem("My Collection", "Manage your cards, decks, and lists", 'm', callbacks[4]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
 		AddItem("Settings", "Configure application preferences", 'c', callbacks[6]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).

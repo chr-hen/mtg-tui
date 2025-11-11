@@ -37,3 +37,19 @@ func (a *App) getCollectionCards() ([]api.Card, error) {
 	return ownedCards, nil
 }
 
+// preloadCollectionCards pre-loads collection cards in the background
+func (a *App) preloadCollectionCards() {
+	// Get collection cards
+	ownedCards, err := a.getCollectionCards()
+	if err != nil {
+		// Silently fail - collection will load on demand
+		return
+	}
+
+	// Cache the collection cards for faster access
+	if a.allMatchingCards == nil {
+		a.allMatchingCards = make(map[string][]api.Card)
+	}
+	a.allMatchingCards["collection"] = ownedCards
+}
+

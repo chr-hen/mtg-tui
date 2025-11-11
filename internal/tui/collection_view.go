@@ -59,20 +59,22 @@ func (a *App) showCollection() {
 		return
 	}
 
+	// Check if collection cards are already cached (pre-loaded)
+	allCollectionCards, exists := a.allMatchingCards["collection"]
+	if !exists {
+		// Not pre-loaded, cache them now
+		if a.allMatchingCards == nil {
+			a.allMatchingCards = make(map[string][]api.Card)
+		}
+		a.allMatchingCards["collection"] = ownedCards
+		allCollectionCards = ownedCards
+	} else {
+		// Use pre-loaded cards
+		ownedCards = allCollectionCards
+	}
+
 	// Group owned cards by name
 	cardGroups := a.groupCardsByName(ownedCards)
-
-	// Store all groups for pagination and pre-loading
-	// We'll store them in allMatchingCards with a special key for collection
-	if a.allMatchingCards == nil {
-		a.allMatchingCards = make(map[string][]api.Card)
-	}
-	// Convert cardGroups back to cards for caching (we'll need to flatten them)
-	allCollectionCards := make([]api.Card, 0)
-	for _, group := range cardGroups {
-		allCollectionCards = append(allCollectionCards, group.Printings...)
-	}
-	a.allMatchingCards["collection"] = allCollectionCards
 
 	// Set up for display
 	a.currentQuery = "collection"
@@ -100,20 +102,57 @@ func (a *App) showCollection() {
 	// Set up VIM keybindings
 	a.setupVimKeybindings()
 
-	// Handle ESC to go back to menu
+	// Handle ESC to go back to collection menu
 	a.table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			if a.pages.HasPage("collection") {
 				a.pages.RemovePage("collection")
 			}
 			a.table = nil
-			if a.pages.HasPage("menu") {
-				a.pages.SwitchToPage("menu")
-				if a.menu != nil {
-					a.app.SetFocus(a.menu)
-				}
+			if a.pages.HasPage("collection_menu") {
+				a.pages.SwitchToPage("collection_menu")
 			} else {
-				a.showMainMenu()
+				a.showCollectionMenu()
+			}
+			return nil
+		}
+
+		// Handle arrow keys - always jump by entire cards to avoid blank rows
+		if event.Key() == tcell.KeyDown {
+			row, _ := a.table.GetSelection()
+			// If we're on a blank row, move to next card
+			if row%4 == 3 {
+				nextRow := ((row / 4) + 1) * 4
+				if nextRow < a.table.GetRowCount() {
+					a.table.Select(nextRow, 0)
+				}
+				return nil
+			}
+			// Otherwise, move to next card's first row
+			currentCard := row / 4
+			nextCard := currentCard + 1
+			nextRow := nextCard * 4
+			if nextRow < a.table.GetRowCount() {
+				a.table.Select(nextRow, 0)
+			}
+			return nil
+		}
+		if event.Key() == tcell.KeyUp {
+			row, _ := a.table.GetSelection()
+			// If we're on a blank row, move to previous card
+			if row%4 == 3 {
+				prevRow := ((row / 4) - 1) * 4 + 2 // Last row of previous card
+				if prevRow >= 0 {
+					a.table.Select(prevRow, 0)
+				}
+				return nil
+			}
+			// Otherwise, move to previous card's first row
+			currentCard := row / 4
+			prevCard := currentCard - 1
+			if prevCard >= 0 {
+				prevRow := prevCard * 4
+				a.table.Select(prevRow, 0)
 			}
 			return nil
 		}
@@ -161,24 +200,42 @@ func (a *App) showCollection() {
 	})
 
 	// Handle selection changed to skip blank rows
+	// Use a flag to prevent recursive calls
+	skippingBlankRow := false
 	a.table.SetSelectionChangedFunc(func(row, column int) {
-		// If we're on a blank row (row % 4 == 3), move to next card
+		// Prevent recursive calls
+		if skippingBlankRow {
+			return
+		}
+		
+		// Check if current row is a blank separator row (every 4th row starting from row 3: 3, 7, 11, etc.)
 		if row%4 == 3 {
-			nextRow := row + 1
+			skippingBlankRow = true
+			// We're on a blank row - immediately move to a valid row
+			// Try to move to the first row of the next card
+			nextRow := ((row / 4) + 1) * 4
 			if nextRow < a.table.GetRowCount() {
 				a.table.Select(nextRow, 0)
 			} else {
-				// If we're at the end, go to previous card
-				prevRow := row - 1
+				// If we're at the end, go to the last row of the previous card
+				prevRow := ((row / 4) - 1) * 4 + 2
 				if prevRow >= 0 {
 					a.table.Select(prevRow, 0)
+				} else {
+					// Fallback: go to row 0
+					a.table.Select(0, 0)
 				}
 			}
+			skippingBlankRow = false
 		}
 	})
 
 	// Handle Enter key to show card detail
 	a.table.SetSelectedFunc(func(row, column int) {
+		// Skip if we're on a blank row
+		if row%4 == 3 {
+			return
+		}
 		// Calculate card group index - each card is 4 rows (3 content + 1 blank)
 		cardIndex := row / 4
 		if cardIndex >= 0 && cardIndex < len(a.cardGroups) {

@@ -83,6 +83,11 @@ func NewApp() *App {
 	// Load autocomplete data in background
 	go a.loadAutocompleteData()
 
+	// Pre-load collection data in background
+	go a.preloadCollectionCards()
+	go a.preloadDecks()
+	go a.preloadLists()
+
 	return a
 }
 
