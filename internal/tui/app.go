@@ -367,8 +367,9 @@ func (a *App) showMainMenu() {
 		}
 	})
 
+	// Remove SetDoneFunc so ESC doesn't quit - only Ctrl+C can quit now
 	menu.SetDoneFunc(func() {
-		a.app.Stop()
+		// Do nothing - prevent accidental quitting with ESC
 	})
 
 	// Handle navigation to skip separators
