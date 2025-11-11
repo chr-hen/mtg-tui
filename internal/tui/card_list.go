@@ -49,36 +49,12 @@ func (a *App) showCardList() {
 	// Group cards by name
 	cardGroups := a.groupCardsByName(allCards)
 
-	// Get current page from cache or calculate it
+	// Use unified pagination
 	pageSize := 10
-	totalGroups := len(cardGroups)
-	startIdx := (a.currentPage - 1) * pageSize
-	endIdx := startIdx + pageSize
-
-	if startIdx >= totalGroups {
-		// Empty page
-		a.cardGroups = []CardGroup{}
-		a.pagination = api.PaginationInfo{
-			HasMore:    false,
-			TotalCards: totalGroups,
-		}
-	} else {
-		if endIdx > totalGroups {
-			endIdx = totalGroups
-		}
-
-		// Get the page of grouped cards
-		a.cardGroups = cardGroups[startIdx:endIdx]
-
-		hasMore := endIdx < totalGroups
-		a.pagination = api.PaginationInfo{
-			HasMore:    hasMore,
-			TotalCards: totalGroups,
-		}
-	}
+	a.paginateCardGroups(cardGroups, a.currentPage, pageSize)
 
 	// Pre-load next 2 pages in background
-	go a.preloadPages(a.currentQuery, a.currentPage, allCards, pageSize)
+	go a.preloadCardGroupPages(a.currentQuery, cardGroups, a.currentPage, pageSize)
 
 	// Create table view for multi-line card display
 	a.table = tview.NewTable()

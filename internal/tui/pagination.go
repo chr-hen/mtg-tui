@@ -41,39 +41,21 @@ func (a *App) loadPageFromCache() {
 		// Group cards by name
 		cardGroups := a.groupCardsByName(allCards)
 
-		// Use cached data
+		// Use cached data with unified pagination
 		pageSize := 10
-		totalGroups := len(cardGroups)
-		startIdx := (a.currentPage - 1) * pageSize
-		endIdx := startIdx + pageSize
+		a.paginateCardGroups(cardGroups, a.currentPage, pageSize)
 
-		if startIdx >= totalGroups {
-			a.cardGroups = []CardGroup{}
-			a.pagination = api.PaginationInfo{
-				HasMore:    false,
-				TotalCards: totalGroups,
-			}
-		} else {
-			if endIdx > totalGroups {
-				endIdx = totalGroups
-			}
-
-			// Get the page of grouped cards
-			a.cardGroups = cardGroups[startIdx:endIdx]
-
-			hasMore := endIdx < totalGroups
-			a.pagination = api.PaginationInfo{
-				HasMore:    hasMore,
-				TotalCards: totalGroups,
-			}
-		}
-
-		// Pre-load next pages in background
-		go a.preloadPages(a.currentQuery, a.currentPage, allCards, pageSize)
+		// Pre-load next pages in background (using CardGroups)
+		go a.preloadCardGroupPages(a.currentQuery, cardGroups, a.currentPage, pageSize)
 	}
 
 	a.populateList()
-	a.updateListTitle()
+	// Use appropriate title update based on query
+	if a.currentQuery == "collection" {
+		a.updateCollectionTitle()
+	} else {
+		a.updateListTitle()
+	}
 	if a.table != nil {
 		a.table.Select(0, 0) // Reset to top of table
 		a.app.SetFocus(a.table)
@@ -81,27 +63,10 @@ func (a *App) loadPageFromCache() {
 }
 
 // preloadPages pre-loads the next few pages in the background for faster navigation
+// This is a legacy function that converts cards to groups and uses the unified preloader
 func (a *App) preloadPages(query string, currentPage int, allCards []api.Card, pageSize int) {
-	// Pre-load next 2 pages
-	for i := 1; i <= 2; i++ {
-		page := currentPage + i
-		startIdx := (page - 1) * pageSize
-		endIdx := startIdx + pageSize
-
-		if startIdx >= len(allCards) {
-			break
-		}
-
-		if endIdx > len(allCards) {
-			endIdx = len(allCards)
-		}
-
-		// Check if already cached
-		if _, exists := a.pageCache[query][page]; !exists {
-			// Cache this page
-			pageCards := allCards[startIdx:endIdx]
-			a.pageCache[query][page] = pageCards
-		}
-	}
+	// Group cards first, then use unified preloader
+	cardGroups := a.groupCardsByName(allCards)
+	a.preloadCardGroupPages(query, cardGroups, currentPage, pageSize)
 }
 

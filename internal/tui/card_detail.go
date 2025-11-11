@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/chr-hen/mtg-tui/internal/tui/collections"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -90,14 +91,18 @@ func (a *App) showCardDetail(pages *tview.Pages, group CardGroup) {
 	a.app.SetFocus(modal)
 }
 
-// showPrintingsModal displays all printings in a scrollable list
+// showPrintingsModal displays all printings in a scrollable list with ownership toggles
 func (a *App) showPrintingsModal(pages *tview.Pages, group CardGroup) {
+	// Remove old printings page if it exists
+	if a.pages.HasPage("printings") {
+		a.pages.RemovePage("printings")
+	}
 	// Create a list to display printings (scrollable)
 	printingsList := tview.NewList().
 		SetSelectedBackgroundColor(tcell.ColorBlue).
 		SetSelectedTextColor(tcell.ColorWhite)
 
-	// Add each printing as a list item
+	// Add each printing as a list item with ownership indicator
 	for _, printing := range group.Printings {
 		// Format printing info
 		printingText := fmt.Sprintf("Set: %s", printing.SetCode)
@@ -111,8 +116,35 @@ func (a *App) showPrintingsModal(pages *tview.Pages, group CardGroup) {
 		if printing.Set != "" {
 			printingText += fmt.Sprintf(" • %s", printing.Set)
 		}
+		
+		// Add ownership indicator
+		isOwned := a.collection.IsOwned(printing.SetCode, printing.CollectorNumber)
+		if isOwned {
+			printingText = "[green]✓[white] " + printingText
+		} else {
+			printingText = "[gray]○[white] " + printingText
+		}
 
-		printingsList.AddItem(printingText, "", 0, nil)
+		// Store printing for callback (capture for closure)
+		printing := printing
+		printingsList.AddItem(printingText, "", 0, func() {
+			// Toggle ownership on Enter
+			a.collection.TogglePrinting(printing.SetCode, printing.CollectorNumber)
+			// Save collection
+			if err := collections.SaveCollection(a.collection); err != nil {
+				// Show error modal
+				errorModal := tview.NewModal().
+					SetText(fmt.Sprintf("Error saving collection: %v", err)).
+					AddButtons([]string{"OK"}).
+					SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+						pages.RemovePage("collection_error")
+					})
+				pages.AddPage("collection_error", errorModal, true, true)
+				return
+			}
+			// Refresh the printings list to show updated ownership
+			a.showPrintingsModal(pages, group)
+		})
 	}
 
 	// Add border and title to the list

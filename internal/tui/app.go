@@ -2,6 +2,7 @@ package tui
 
 import (
 	"github.com/chr-hen/mtg-tui/internal/api"
+	"github.com/chr-hen/mtg-tui/internal/tui/collections"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -35,6 +36,8 @@ type App struct {
 	sortAscending bool
 	// Settings
 	settings *Settings
+	// Collections
+	collection *collections.Collection
 }
 
 func NewApp() *App {
@@ -52,6 +55,15 @@ func NewApp() *App {
 		}
 	}
 
+	// Load collection
+	collection, err := collections.LoadCollection()
+	if err != nil {
+		// If loading fails, create empty collection
+		collection = &collections.Collection{
+			OwnedPrintings: []collections.CardPrintingID{},
+		}
+	}
+
 	a := &App{
 		app:              app,
 		currentPage:      1,
@@ -65,6 +77,7 @@ func NewApp() *App {
 		sortField:        "name", // Default to name sort
 		sortAscending:    true,
 		settings:         settings,
+		collection:       collection,
 	}
 
 	// Load autocomplete data in background
