@@ -156,11 +156,15 @@ func (a *App) showAdvancedSearch() {
 	// Remove old advanced page to prevent artifacts
 	a.pages.RemovePage("advanced")
 
-	// Ensure autocomplete data is loaded (in case cache wasn't ready at startup)
-	if len(a.uniqueTypes) == 0 && len(a.uniqueSets) == 0 {
-		// Try to load synchronously if not already loaded
-		a.loadAutocompleteData()
-	}
+	// Autocomplete data should already be pre-loaded in background
+	// If not ready yet, form will work without autocomplete and it will be available on next open
+	// Check in background if data needs loading (non-blocking)
+	go func() {
+		if len(a.uniqueTypes) == 0 && len(a.uniqueSets) == 0 {
+			// Data not loaded yet, load it in background (won't block UI)
+			a.loadAutocompleteData()
+		}
+	}()
 
 	form := tview.NewForm()
 	form.SetTitle(" [yellow]Advanced Search (Scryfall Syntax)[white] ")
