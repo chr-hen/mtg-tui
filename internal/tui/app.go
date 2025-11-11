@@ -281,9 +281,15 @@ func (a *App) downloadBulkData() {
 }
 
 func (a *App) showMainMenu() {
-	// Remove old menu page to prevent artifacts (only if it exists)
+	// Remove old menu page and search page to prevent artifacts
 	if a.pages.HasPage("menu") {
 		a.pages.RemovePage("menu")
+	}
+	if a.pages.HasPage("search") {
+		a.pages.RemovePage("search")
+	}
+	if a.pages.HasPage("advanced") {
+		a.pages.RemovePage("advanced")
 	}
 
 	// Create ASCII art for MTG-TUI with color
@@ -502,8 +508,18 @@ func (a *App) showSearchInput() {
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
-			// Force a full redraw by recreating the menu
-			a.showMainMenu()
+			// Handle ESC similar to card list - check if menu exists first
+			if a.pages.HasPage("search") {
+				a.pages.RemovePage("search")
+			}
+			if a.pages.HasPage("menu") {
+				a.pages.SwitchToPage("menu")
+				if a.menu != nil {
+					a.app.SetFocus(a.menu)
+				}
+			} else {
+				a.showMainMenu()
+			}
 			return nil
 		}
 		return event
@@ -800,8 +816,18 @@ func (a *App) showAdvancedSearch() {
 
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
-			// Force a full redraw by recreating the menu
-			a.showMainMenu()
+			// Handle ESC similar to card list - check if menu exists first
+			if a.pages.HasPage("advanced") {
+				a.pages.RemovePage("advanced")
+			}
+			if a.pages.HasPage("menu") {
+				a.pages.SwitchToPage("menu")
+				if a.menu != nil {
+					a.app.SetFocus(a.menu)
+				}
+			} else {
+				a.showMainMenu()
+			}
 			return nil
 		}
 		return event
