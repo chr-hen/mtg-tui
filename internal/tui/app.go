@@ -34,12 +34,24 @@ type App struct {
 	// Sorting
 	sortField    string // "name", "released", "set", "rarity", "color", "cmc", "power", "toughness"
 	sortAscending bool
+	// Settings
+	settings *Settings
 }
 
 func NewApp() *App {
 	app := tview.NewApplication()
 	// Enable mouse support and configure input properly
 	app.EnableMouse(false)
+	
+	// Load settings
+	settings, err := LoadSettings()
+	if err != nil {
+		// If loading fails, use default settings
+		settings = &Settings{
+			ShowArenaCards: false,
+		}
+	}
+	
 	a := &App{
 		app:              app,
 		currentPage:      1,
@@ -52,6 +64,7 @@ func NewApp() *App {
 		uniqueKeywords:   []string{},
 		sortField:        "name", // Default to name sort
 		sortAscending:    true,
+		settings:         settings,
 	}
 
 	// Load autocomplete data in background

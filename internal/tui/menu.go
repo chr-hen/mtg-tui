@@ -49,6 +49,8 @@ func (a *App) showMainMenu() {
 		nil, // separator
 		func() { a.showAdvancedSearch() },
 		nil, // separator
+		func() { a.showSettingsScreen() },
+		nil, // separator
 		func() { a.app.Stop() },
 	}
 
@@ -56,7 +58,9 @@ func (a *App) showMainMenu() {
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
 		AddItem("Advanced Search", "Use Scryfall syntax for detailed filtering", 'a', callbacks[2]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("Quit", "Exit the application", 'q', callbacks[4])
+		AddItem("Settings", "Configure application preferences", 'c', callbacks[4]).
+		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
+		AddItem("Quit", "Exit the application", 'q', callbacks[6])
 
 	menu.SetBorder(true).
 		SetTitle(" [yellow]Navigation[white] ").

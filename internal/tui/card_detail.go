@@ -121,7 +121,7 @@ func (a *App) showPrintingsModal(pages *tview.Pages, group CardGroup) {
 		SetTitle(fmt.Sprintf(" [yellow]Printings for: %s[white] (%d total)[yellow] ", group.Card.Name, len(group.Printings))).
 		SetTitleColor(tcell.ColorYellow)
 
-	// Set up input capture for ESC key
+	// Set up input capture for ESC key and Vim motions
 	printingsList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEscape {
 			pages.RemovePage("printings")
@@ -132,6 +132,27 @@ func (a *App) showPrintingsModal(pages *tview.Pages, group CardGroup) {
 			}
 			return nil
 		}
+		
+		// Handle Vim motions
+		if event.Key() == tcell.KeyRune {
+			switch event.Rune() {
+			case 'j':
+				// Move down
+				current := printingsList.GetCurrentItem()
+				if current < printingsList.GetItemCount()-1 {
+					printingsList.SetCurrentItem(current + 1)
+				}
+				return nil
+			case 'k':
+				// Move up
+				current := printingsList.GetCurrentItem()
+				if current > 0 {
+					printingsList.SetCurrentItem(current - 1)
+				}
+				return nil
+			}
+		}
+		
 		return event
 	})
 

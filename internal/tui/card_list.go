@@ -340,10 +340,16 @@ func (a *App) populateList() {
 }
 
 // groupCardsByName groups cards by their name, collecting all printings
+// Also filters out Arena cards if the setting is disabled
 func (a *App) groupCardsByName(cards []api.Card) []CardGroup {
 	groupsMap := make(map[string]*CardGroup)
-
+	
 	for _, card := range cards {
+		// Filter out Arena cards if setting is disabled
+		if !a.settings.ShowArenaCards && IsArenaCard(card.Name) {
+			continue
+		}
+		
 		cardName := strings.ToLower(card.Name)
 		if group, exists := groupsMap[cardName]; exists {
 			// Add this printing to the existing group
