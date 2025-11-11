@@ -46,37 +46,34 @@ func (a *App) showCardList() {
 		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
 	}
 
+	// Group cards by name
+	cardGroups := a.groupCardsByName(allCards)
+
 	// Get current page from cache or calculate it
 	pageSize := 10
-	totalCards := len(allCards)
+	totalGroups := len(cardGroups)
 	startIdx := (a.currentPage - 1) * pageSize
 	endIdx := startIdx + pageSize
 
-	if startIdx >= totalCards {
+	if startIdx >= totalGroups {
 		// Empty page
-		a.cards = []api.Card{}
+		a.cardGroups = []CardGroup{}
 		a.pagination = api.PaginationInfo{
 			HasMore:    false,
-			TotalCards: totalCards,
+			TotalCards: totalGroups,
 		}
 	} else {
-		if endIdx > totalCards {
-			endIdx = totalCards
+		if endIdx > totalGroups {
+			endIdx = totalGroups
 		}
 
-		// Check cache first
-		if cachedPage, exists := a.pageCache[a.currentQuery][a.currentPage]; exists {
-			a.cards = cachedPage
-		} else {
-			// Calculate and cache this page
-			a.cards = allCards[startIdx:endIdx]
-			a.pageCache[a.currentQuery][a.currentPage] = a.cards
-		}
+		// Get the page of grouped cards
+		a.cardGroups = cardGroups[startIdx:endIdx]
 
-		hasMore := endIdx < totalCards
+		hasMore := endIdx < totalGroups
 		a.pagination = api.PaginationInfo{
 			HasMore:    hasMore,
-			TotalCards: totalCards,
+			TotalCards: totalGroups,
 		}
 	}
 
@@ -131,9 +128,9 @@ func (a *App) showCardList() {
 			if rune == 'k' {
 				// Move up - skip to previous card
 				row, _ := a.table.GetSelection()
-				nextRow := row - 4
-				if nextRow >= 0 {
-					a.table.Select(nextRow, 0)
+				prevRow := row - 4
+				if prevRow >= 0 {
+					a.table.Select(prevRow, 0)
 				}
 				return nil
 			}
@@ -193,10 +190,10 @@ func (a *App) showCardList() {
 
 	// Handle Enter key to show card detail
 	a.table.SetSelectedFunc(func(row, column int) {
-		// Calculate card index - each card is 4 rows (3 content + 1 blank)
+		// Calculate card group index - each card is 4 rows (3 content + 1 blank)
 		cardIndex := row / 4
-		if cardIndex >= 0 && cardIndex < len(a.cards) {
-			a.showCardDetail(a.pages, a.cards[cardIndex])
+		if cardIndex >= 0 && cardIndex < len(a.cardGroups) {
+			a.showCardDetail(a.pages, a.cardGroups[cardIndex])
 		}
 	})
 
@@ -284,7 +281,9 @@ func (a *App) populateList() {
 	a.table.Clear()
 
 	row := 0
-	for i, card := range a.cards {
+	for i, group := range a.cardGroups {
+		card := group.Card // Use the canonical card for display
+
 		// Row 1: Card Name (white)
 		cell := tview.NewTableCell(card.Name).
 			SetTextColor(tcell.ColorWhite).
@@ -303,7 +302,7 @@ func (a *App) populateList() {
 		a.table.SetCell(row, 0, cell)
 		row++
 
-		// Row 3: Rarity • Mana Cost • Set: SetCode • SetNum: xx/xx (gray)
+		// Row 3: Rarity • Mana Cost (gray) - removed set info since we have multiple printings
 		infoParts := []string{}
 		if card.Rarity != "" {
 			rarity := strings.ToLower(card.Rarity)
@@ -315,16 +314,9 @@ func (a *App) populateList() {
 		if card.ManaCost != "" {
 			infoParts = append(infoParts, card.ManaCost)
 		}
-		if card.SetCode != "" {
-			infoParts = append(infoParts, fmt.Sprintf("Set: %s", card.SetCode))
-		}
-		// Add collector number if available
-		if card.CollectorNumber != "" {
-			setNumStr := card.CollectorNumber
-			if card.SetSize > 0 {
-				setNumStr = fmt.Sprintf("%s/%d", card.CollectorNumber, card.SetSize)
-			}
-			infoParts = append(infoParts, fmt.Sprintf("SetNum: %s", setNumStr))
+		// Show number of printings if more than one
+		if len(group.Printings) > 1 {
+			infoParts = append(infoParts, fmt.Sprintf("(%d printings)", len(group.Printings)))
 		}
 
 		infoLine := strings.Join(infoParts, " • ")
@@ -338,13 +330,52 @@ func (a *App) populateList() {
 		row++
 
 		// Add blank row separator (except after last card)
-		if i < len(a.cards)-1 {
+		if i < len(a.cardGroups)-1 {
 			cell = tview.NewTableCell("").
 				SetSelectable(false)
 			a.table.SetCell(row, 0, cell)
 			row++
 		}
 	}
+}
+
+// groupCardsByName groups cards by their name, collecting all printings
+func (a *App) groupCardsByName(cards []api.Card) []CardGroup {
+	groupsMap := make(map[string]*CardGroup)
+
+	for _, card := range cards {
+		cardName := strings.ToLower(card.Name)
+		if group, exists := groupsMap[cardName]; exists {
+			// Add this printing to the existing group
+			group.Printings = append(group.Printings, card)
+		} else {
+			// Create a new group
+			groupsMap[cardName] = &CardGroup{
+				Card:      card, // Use first occurrence as canonical
+				Printings: []api.Card{card},
+			}
+		}
+	}
+
+	// Convert map to slice and sort by canonical card name
+	groups := make([]CardGroup, 0, len(groupsMap))
+	for _, group := range groupsMap {
+		// Sort printings by set code, then collector number
+		sort.Slice(group.Printings, func(i, j int) bool {
+			if group.Printings[i].SetCode != group.Printings[j].SetCode {
+				return group.Printings[i].SetCode < group.Printings[j].SetCode
+			}
+			return compareCollectorNumbers(group.Printings[i].CollectorNumber, group.Printings[j].CollectorNumber)
+		})
+		groups = append(groups, *group)
+	}
+
+	// Sort groups by canonical card name
+	sort.Slice(groups, func(i, j int) bool {
+		return strings.ToLower(groups[i].Card.Name) < strings.ToLower(groups[j].Card.Name)
+	})
+
+	return groups
 }
 
 func (a *App) updateListTitle() {

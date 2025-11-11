@@ -4,15 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/chr-hen/mtg-tui/internal/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
-// showCardDetail creates and displays a modal with card info
-func (a *App) showCardDetail(pages *tview.Pages, card api.Card) {
-	// Reorder to match results page: Name, Type, Rarity • Mana Cost • Set: SetCode
-	// Then add Oracle Text, Set, and Rarity on separate lines
+// showCardDetail creates and displays a modal with card info, showing all printings
+func (a *App) showCardDetail(pages *tview.Pages, group CardGroup) {
+	card := group.Card // Use canonical card for main info
 
 	// Format rarity with proper capitalization
 	rarity := card.Rarity
@@ -23,16 +21,13 @@ func (a *App) showCardDetail(pages *tview.Pages, card api.Card) {
 		}
 	}
 
-	// Build info line matching results page format: Rarity • Mana Cost • Set: SetCode
+	// Build info line matching results page format: Rarity • Mana Cost
 	infoParts := []string{}
 	if rarity != "" {
 		infoParts = append(infoParts, rarity)
 	}
 	if card.ManaCost != "" {
 		infoParts = append(infoParts, card.ManaCost)
-	}
-	if card.SetCode != "" {
-		infoParts = append(infoParts, fmt.Sprintf("Set: %s", card.SetCode))
 	}
 	infoLine := strings.Join(infoParts, " • ")
 
@@ -66,16 +61,92 @@ func (a *App) showCardDetail(pages *tview.Pages, card api.Card) {
 		detailText += fmt.Sprintf("\n\n%s", card.OracleText)
 	}
 
+	// Create buttons - add "View Printings" if there are multiple printings
+	buttons := []string{"Back"}
+	if len(group.Printings) > 0 {
+		buttons = []string{"View Printings", "Back"}
+	}
+
 	// Create modal with proper styling
 	modal := tview.NewModal().
 		SetText(detailText).
-		AddButtons([]string{"Back"}).
+		AddButtons(buttons).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-			pages.RemovePage("detail")
+			if buttonLabel == "View Printings" {
+				// Show printings modal
+				a.showPrintingsModal(pages, group)
+			} else {
+				// Back button
+				pages.RemovePage("detail")
+			}
 		})
-	modal.SetBackgroundColor(tcell.ColorBlack)
+	modal.SetBackgroundColor(tcell.ColorBlack).
+		SetBorder(true).
+		SetBorderColor(tcell.ColorYellow).
+		SetTitle(" [yellow]Card Details[white] ").
+		SetTitleColor(tcell.ColorYellow)
 
 	pages.AddPage("detail", modal, true, true)
 	a.app.SetFocus(modal)
+}
+
+// showPrintingsModal displays all printings in a scrollable list
+func (a *App) showPrintingsModal(pages *tview.Pages, group CardGroup) {
+	// Create a list to display printings (scrollable)
+	printingsList := tview.NewList().
+		SetSelectedBackgroundColor(tcell.ColorBlue).
+		SetSelectedTextColor(tcell.ColorWhite)
+
+	// Add each printing as a list item
+	for _, printing := range group.Printings {
+		// Format printing info
+		printingText := fmt.Sprintf("Set: %s", printing.SetCode)
+		if printing.CollectorNumber != "" {
+			setNumStr := printing.CollectorNumber
+			if printing.SetSize > 0 {
+				setNumStr = fmt.Sprintf("%s/%d", printing.CollectorNumber, printing.SetSize)
+			}
+			printingText += fmt.Sprintf(" • SetNum: %s", setNumStr)
+		}
+		if printing.Set != "" {
+			printingText += fmt.Sprintf(" • %s", printing.Set)
+		}
+
+		printingsList.AddItem(printingText, "", 0, nil)
+	}
+
+	// Add border and title to the list
+	printingsList.SetBorder(true).
+		SetBorderColor(tcell.ColorYellow).
+		SetTitle(fmt.Sprintf(" [yellow]Printings for: %s[white] (%d total)[yellow] ", group.Card.Name, len(group.Printings))).
+		SetTitleColor(tcell.ColorYellow)
+
+	// Set up input capture for ESC key
+	printingsList.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEscape {
+			pages.RemovePage("printings")
+			// Return to detail modal
+			if pages.HasPage("detail") {
+				pages.SwitchToPage("detail")
+				a.app.SetFocus(pages)
+			}
+			return nil
+		}
+		return event
+	})
+
+	// Create a centered modal-like view
+	modalFlex := tview.NewFlex().
+		SetDirection(tview.FlexRow).
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().
+			AddItem(nil, 0, 1, false).
+			AddItem(printingsList, 80, 0, true).
+			AddItem(nil, 0, 1, false), 0, 1, true).
+		AddItem(nil, 0, 1, false)
+
+	pages.AddPage("printings", modalFlex, true, true)
+	pages.SwitchToPage("printings")
+	a.app.SetFocus(printingsList)
 }
 

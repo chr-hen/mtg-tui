@@ -38,36 +38,33 @@ func (a *App) loadPageFromCache() {
 		a.cards = result.Cards
 		a.pagination = result.Pagination
 	} else {
+		// Group cards by name
+		cardGroups := a.groupCardsByName(allCards)
+
 		// Use cached data
 		pageSize := 10
-		totalCards := len(allCards)
+		totalGroups := len(cardGroups)
 		startIdx := (a.currentPage - 1) * pageSize
 		endIdx := startIdx + pageSize
 
-		if startIdx >= totalCards {
-			a.cards = []api.Card{}
+		if startIdx >= totalGroups {
+			a.cardGroups = []CardGroup{}
 			a.pagination = api.PaginationInfo{
 				HasMore:    false,
-				TotalCards: totalCards,
+				TotalCards: totalGroups,
 			}
 		} else {
-			if endIdx > totalCards {
-				endIdx = totalCards
+			if endIdx > totalGroups {
+				endIdx = totalGroups
 			}
 
-			// Check cache first
-			if cachedPage, exists := a.pageCache[a.currentQuery][a.currentPage]; exists {
-				a.cards = cachedPage
-			} else {
-				// Calculate and cache this page
-				a.cards = allCards[startIdx:endIdx]
-				a.pageCache[a.currentQuery][a.currentPage] = a.cards
-			}
+			// Get the page of grouped cards
+			a.cardGroups = cardGroups[startIdx:endIdx]
 
-			hasMore := endIdx < totalCards
+			hasMore := endIdx < totalGroups
 			a.pagination = api.PaginationInfo{
 				HasMore:    hasMore,
-				TotalCards: totalCards,
+				TotalCards: totalGroups,
 			}
 		}
 
