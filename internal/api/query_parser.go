@@ -185,7 +185,24 @@ func matchesCondition(card Card, cond QueryCondition) bool {
 }
 
 func matchesType(card Card, value string) bool {
-	return strings.Contains(strings.ToLower(card.TypeLine), strings.ToLower(value))
+	// Match whole words only, not substrings
+	// This prevents "cow" from matching "coward"
+	value = strings.ToLower(value)
+	typeLine := strings.ToLower(card.TypeLine)
+	
+	// Use word boundaries to match whole words
+	// Split by common separators (space, dash, em dash) and check each word
+	words := strings.FieldsFunc(typeLine, func(r rune) bool {
+		return r == ' ' || r == '-' || r == '—' || r == '/' || r == ','
+	})
+	
+	for _, word := range words {
+		if word == value {
+			return true
+		}
+	}
+	
+	return false
 }
 
 func matchesColor(card Card, value string) bool {

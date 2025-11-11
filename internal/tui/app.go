@@ -3,6 +3,7 @@ package tui
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 
 	"github.com/chr-hen/mtg-tui/internal/api"
@@ -23,18 +24,141 @@ type App struct {
 	// Caching for faster page navigation
 	pageCache        map[string]map[int][]api.Card // query -> page -> cards
 	allMatchingCards map[string][]api.Card         // query -> all matching cards
+	// Autocomplete data
+	uniqueTypes    []string
+	uniqueSets     []string
+	uniqueRarities []string
+	uniqueKeywords []string
 }
 
 func NewApp() *App {
 	app := tview.NewApplication()
 	// Enable mouse support and configure input properly
 	app.EnableMouse(false)
-	return &App{
+	a := &App{
 		app:              app,
 		currentPage:      1,
 		currentQuery:     "",
 		pageCache:        make(map[string]map[int][]api.Card),
 		allMatchingCards: make(map[string][]api.Card),
+		uniqueTypes:      []string{},
+		uniqueSets:       []string{},
+		uniqueRarities:   []string{},
+		uniqueKeywords:   []string{},
+	}
+
+	// Load autocomplete data in background
+	go a.loadAutocompleteData()
+
+	return a
+}
+
+// loadAutocompleteData extracts unique values from card data for autocomplete
+func (a *App) loadAutocompleteData() {
+	cards, err := api.LoadCardsFromCache()
+	if err != nil {
+		// Cache not available yet, will be loaded later
+		return
+	}
+
+	typeMap := make(map[string]bool)
+	setMap := make(map[string]bool)
+	rarityMap := make(map[string]bool)
+	keywordMap := make(map[string]bool)
+
+	for _, card := range cards {
+		// Extract types (split TypeLine by spaces and dashes)
+		typeParts := strings.FieldsFunc(card.TypeLine, func(r rune) bool {
+			return r == ' ' || r == '-' || r == '—'
+		})
+		for _, part := range typeParts {
+			part = strings.TrimSpace(part)
+			if part != "" && len(part) > 1 {
+				typeMap[strings.ToLower(part)] = true
+			}
+		}
+
+		// Extract sets (use both SetCode and Set name)
+		if card.SetCode != "" {
+			setMap[strings.ToLower(card.SetCode)] = true
+		}
+		if card.Set != "" {
+			setMap[strings.ToLower(card.Set)] = true
+		}
+
+		// Extract rarities
+		if card.Rarity != "" {
+			rarityMap[strings.ToLower(card.Rarity)] = true
+		}
+
+		// Extract keywords
+		for _, kw := range card.Keywords {
+			if kw != "" {
+				keywordMap[strings.ToLower(kw)] = true
+			}
+		}
+	}
+
+	// Convert maps to sorted slices
+	a.uniqueTypes = make([]string, 0, len(typeMap))
+	for t := range typeMap {
+		a.uniqueTypes = append(a.uniqueTypes, t)
+	}
+	sort.Strings(a.uniqueTypes)
+
+	a.uniqueSets = make([]string, 0, len(setMap))
+	for s := range setMap {
+		a.uniqueSets = append(a.uniqueSets, s)
+	}
+	sort.Strings(a.uniqueSets)
+
+	a.uniqueRarities = make([]string, 0, len(rarityMap))
+	for r := range rarityMap {
+		a.uniqueRarities = append(a.uniqueRarities, r)
+	}
+	sort.Strings(a.uniqueRarities)
+
+	a.uniqueKeywords = make([]string, 0, len(keywordMap))
+	for k := range keywordMap {
+		a.uniqueKeywords = append(a.uniqueKeywords, k)
+	}
+	sort.Strings(a.uniqueKeywords)
+}
+
+// createAutocompleteFunc creates an autocomplete function for a given list of options
+func (a *App) createAutocompleteFunc(options []string) func(currentText string) []string {
+	return func(currentText string) []string {
+		currentText = strings.TrimSpace(currentText)
+		if currentText == "" {
+			return []string{}
+		}
+
+		// Remove common query prefixes for matching
+		searchText := strings.ToLower(currentText)
+		prefixes := []string{"t:", "type:", "s:", "set:", "r:", "rarity:", "kw:", "keyword:"}
+		for _, prefix := range prefixes {
+			if strings.HasPrefix(searchText, prefix) {
+				searchText = strings.TrimPrefix(searchText, prefix)
+				break
+			}
+		}
+
+		if searchText == "" {
+			return []string{}
+		}
+
+		// Find all matching options (limit to 10 for performance)
+		var matches []string
+		for _, option := range options {
+			if strings.HasPrefix(strings.ToLower(option), searchText) {
+				matches = append(matches, option)
+				if len(matches) >= 10 {
+					break
+				}
+			}
+		}
+
+		return matches
 	}
 }
 
@@ -394,6 +518,12 @@ func (a *App) showAdvancedSearch() {
 	// Remove old advanced page to prevent artifacts
 	a.pages.RemovePage("advanced")
 
+	// Ensure autocomplete data is loaded (in case cache wasn't ready at startup)
+	if len(a.uniqueTypes) == 0 && len(a.uniqueSets) == 0 {
+		// Try to load synchronously if not already loaded
+		a.loadAutocompleteData()
+	}
+
 	form := tview.NewForm()
 	form.SetTitle(" [yellow]Advanced Search (Scryfall Syntax)[white] ")
 	form.SetBorder(true)
@@ -419,9 +549,13 @@ func (a *App) showAdvancedSearch() {
 	typeInput := tview.NewInputField()
 	typeInput.SetLabel("Type: ")
 	typeInput.SetFieldWidth(40)
-	typeInput.SetPlaceholder("t:creature or type:dragon")
+	typeInput.SetPlaceholder("t:creature (autocomplete available)")
 	typeInput.SetPlaceholderTextColor(tcell.ColorGray)
 	typeInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	// Add autocomplete for types
+	if len(a.uniqueTypes) > 0 {
+		typeInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueTypes))
+	}
 
 	// Color
 	colorInput := tview.NewInputField()
@@ -466,17 +600,25 @@ func (a *App) showAdvancedSearch() {
 	setInput := tview.NewInputField()
 	setInput.SetLabel("Set: ")
 	setInput.SetFieldWidth(40)
-	setInput.SetPlaceholder("s:khm or set:khans")
+	setInput.SetPlaceholder("s:khm (autocomplete available)")
 	setInput.SetPlaceholderTextColor(tcell.ColorGray)
 	setInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	// Add autocomplete for sets
+	if len(a.uniqueSets) > 0 {
+		setInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueSets))
+	}
 
 	// Rarity
 	rarityInput := tview.NewInputField()
 	rarityInput.SetLabel("Rarity: ")
 	rarityInput.SetFieldWidth(40)
-	rarityInput.SetPlaceholder("r:rare or rarity:mythic")
+	rarityInput.SetPlaceholder("r:rare (autocomplete available)")
 	rarityInput.SetPlaceholderTextColor(tcell.ColorGray)
 	rarityInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	// Add autocomplete for rarities
+	if len(a.uniqueRarities) > 0 {
+		rarityInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueRarities))
+	}
 
 	// Year
 	yearInput := tview.NewInputField()
@@ -498,9 +640,13 @@ func (a *App) showAdvancedSearch() {
 	keywordInput := tview.NewInputField()
 	keywordInput.SetLabel("Keyword: ")
 	keywordInput.SetFieldWidth(40)
-	keywordInput.SetPlaceholder("kw:flying")
+	keywordInput.SetPlaceholder("kw:flying (autocomplete available)")
 	keywordInput.SetPlaceholderTextColor(tcell.ColorGray)
 	keywordInput.SetFormAttributes(0, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
+	// Add autocomplete for keywords
+	if len(a.uniqueKeywords) > 0 {
+		keywordInput.SetAutocompleteFunc(a.createAutocompleteFunc(a.uniqueKeywords))
+	}
 
 	// Special flags
 	isInput := tview.NewInputField()
