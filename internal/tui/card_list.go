@@ -350,6 +350,11 @@ func (a *App) groupCardsByName(cards []api.Card) []CardGroup {
 			continue
 		}
 		
+		// Filter out cards with type "card" if setting is disabled
+		if !a.settings.ShowTypeCard && IsTypeCard(card.TypeLine) {
+			continue
+		}
+		
 		cardName := strings.ToLower(card.Name)
 		if group, exists := groupsMap[cardName]; exists {
 			// Add this printing to the existing group

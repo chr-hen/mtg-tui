@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Settings represents user preferences
 type Settings struct {
 	ShowArenaCards bool `json:"show_arena_cards"` // Show cards with names starting with "A-"
+	ShowTypeCard   bool `json:"show_type_card"`   // Show cards with type "card"
 }
 
 // GetSettingsFilePath returns the path to the settings file
@@ -27,6 +29,7 @@ func LoadSettings() (*Settings, error) {
 		// Return default settings
 		return &Settings{
 			ShowArenaCards: false, // Default to hiding Arena cards
+			ShowTypeCard:   false, // Default to hiding cards with type "card"
 		}, nil
 	}
 	
@@ -71,5 +74,10 @@ func SaveSettings(settings *Settings) error {
 // IsArenaCard checks if a card name indicates it's an Arena card (starts with "A-")
 func IsArenaCard(cardName string) bool {
 	return len(cardName) >= 2 && cardName[0] == 'A' && cardName[1] == '-'
+}
+
+// IsTypeCard checks if a card's type line is exactly "card"
+func IsTypeCard(typeLine string) bool {
+	return strings.ToLower(strings.TrimSpace(typeLine)) == "card"
 }
 

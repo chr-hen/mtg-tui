@@ -152,15 +152,16 @@ func (a *App) showMainMenu() {
 		return event
 	})
 
-	// Create a flex container to center everything vertically
+	// Create a flex container to center everything vertically with equal padding
+	// Use flexible spacers that will distribute remaining space equally
 	flex := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(nil, 0, 1, false). // Top spacer
+		AddItem(nil, 0, 1, false). // Top spacer (flexible - will take equal space)
 		AddItem(artView, 6, 0, false).
 		AddItem(subtitle, 1, 0, false).
 		AddItem(nil, 1, 0, false).  // Spacer between title and menu
-		AddItem(menu, 12, 0, true). // Menu with fixed height to show all items (5 items + separators)
-		AddItem(nil, 0, 1, false)   // Bottom spacer
+		AddItem(menu, 17, 0, true).  // Menu with height to fit all items (4 menu items + 3 separators, with a bit of padding)
+		AddItem(nil, 0, 1, false)   // Bottom spacer (flexible - will take equal space)
 
 	// Create another flex to center horizontally
 	centeredFlex := tview.NewFlex().

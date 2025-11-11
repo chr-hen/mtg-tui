@@ -49,6 +49,7 @@ func NewApp() *App {
 		// If loading fails, use default settings
 		settings = &Settings{
 			ShowArenaCards: false,
+			ShowTypeCard:   false,
 		}
 	}
 	
