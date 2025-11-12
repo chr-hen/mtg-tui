@@ -50,15 +50,20 @@ func NewApp() *App {
 	if err != nil {
 		// If loading fails, use default settings
 		settings = &models.Settings{
-			ShowArenaCards: false,
-			ShowTypeCard:   false,
-			ShowArtCards:   false,
-			PageSize:       10,
+			ShowArenaCards:  false,
+			ShowTypeCard:    false,
+			ShowArtCards:    false,
+			PageSize:        10,
+			FieldVisibility: models.GetDefaultFieldVisibility(),
 		}
 	}
 	// Ensure PageSize has a valid default if not set (for old config files)
 	if settings.PageSize <= 0 {
 		settings.PageSize = 10
+	}
+	// Ensure field visibility is initialized (for old config files)
+	if settings.FieldVisibility == (models.FieldVisibility{}) {
+		settings.FieldVisibility = models.GetDefaultFieldVisibility()
 	}
 
 	// Load collection

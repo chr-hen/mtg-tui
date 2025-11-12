@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/chr-hen/mtg-tui/internal/api"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
-	"github.com/chr-hen/mtg-tui/internal/api"
 )
 
 // FilterFormFields holds all the input fields for the filter form
@@ -167,20 +167,46 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	fields.Is.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Is.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
 
-	// Add all fields to form
-	form.AddFormItem(fields.Name)
-	form.AddFormItem(fields.Type)
-	form.AddFormItem(fields.Color)
-	form.AddFormItem(fields.Oracle)
-	form.AddFormItem(fields.Mana)
-	form.AddFormItem(fields.Power)
-	form.AddFormItem(fields.Toughness)
-	form.AddFormItem(fields.Set)
-	form.AddFormItem(fields.Rarity)
-	form.AddFormItem(fields.Year)
-	form.AddFormItem(fields.Artist)
-	form.AddFormItem(fields.Keyword)
-	form.AddFormItem(fields.Is)
+	// Add fields to form based on visibility settings
+	if a.settings.FieldVisibility.Name {
+		form.AddFormItem(fields.Name)
+	}
+	if a.settings.FieldVisibility.Type {
+		form.AddFormItem(fields.Type)
+	}
+	if a.settings.FieldVisibility.Color {
+		form.AddFormItem(fields.Color)
+	}
+	if a.settings.FieldVisibility.Oracle {
+		form.AddFormItem(fields.Oracle)
+	}
+	if a.settings.FieldVisibility.Mana {
+		form.AddFormItem(fields.Mana)
+	}
+	if a.settings.FieldVisibility.Power {
+		form.AddFormItem(fields.Power)
+	}
+	if a.settings.FieldVisibility.Toughness {
+		form.AddFormItem(fields.Toughness)
+	}
+	if a.settings.FieldVisibility.Set {
+		form.AddFormItem(fields.Set)
+	}
+	if a.settings.FieldVisibility.Rarity {
+		form.AddFormItem(fields.Rarity)
+	}
+	if a.settings.FieldVisibility.Year {
+		form.AddFormItem(fields.Year)
+	}
+	if a.settings.FieldVisibility.Artist {
+		form.AddFormItem(fields.Artist)
+	}
+	if a.settings.FieldVisibility.Keyword {
+		form.AddFormItem(fields.Keyword)
+	}
+	if a.settings.FieldVisibility.Is {
+		form.AddFormItem(fields.Is)
+	}
 
 	// Force form to apply field colors after adding all items
 	form.SetFieldTextColor(tcell.ColorWhite)
@@ -419,11 +445,30 @@ func (a *App) setupFilterFormInputHandling(
 ) {
 	// Vim-style insert mode state
 	insertMode := false
-	// Store all input fields for navigation
-	inputFields := []*tview.InputField{
-		fields.Name, fields.Type, fields.Color, fields.Oracle, fields.Mana,
-		fields.Power, fields.Toughness, fields.Set, fields.Rarity,
-		fields.Year, fields.Artist, fields.Keyword, fields.Is,
+	// Store visible input fields for navigation (only fields that are actually in the form)
+	inputFields := []*tview.InputField{}
+	fieldOrder := []struct {
+		enabled bool
+		field   *tview.InputField
+	}{
+		{a.settings.FieldVisibility.Name, fields.Name},
+		{a.settings.FieldVisibility.Type, fields.Type},
+		{a.settings.FieldVisibility.Color, fields.Color},
+		{a.settings.FieldVisibility.Oracle, fields.Oracle},
+		{a.settings.FieldVisibility.Mana, fields.Mana},
+		{a.settings.FieldVisibility.Power, fields.Power},
+		{a.settings.FieldVisibility.Toughness, fields.Toughness},
+		{a.settings.FieldVisibility.Set, fields.Set},
+		{a.settings.FieldVisibility.Rarity, fields.Rarity},
+		{a.settings.FieldVisibility.Year, fields.Year},
+		{a.settings.FieldVisibility.Artist, fields.Artist},
+		{a.settings.FieldVisibility.Keyword, fields.Keyword},
+		{a.settings.FieldVisibility.Is, fields.Is},
+	}
+	for _, item := range fieldOrder {
+		if item.enabled {
+			inputFields = append(inputFields, item.field)
+		}
 	}
 	currentFieldIndex := 0
 
