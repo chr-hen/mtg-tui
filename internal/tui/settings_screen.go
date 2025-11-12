@@ -56,8 +56,8 @@ func (a *App) showSettingsScreen() {
 		})
 	form.AddFormItem(pageSizeInput)
 
-	// Add buttons
-	form.AddButton("Save", func() {
+	// Save callback function
+	saveCallback := func() {
 		// Update settings with the current checkbox values
 		// The closures capture the values, so they will have the latest values
 		a.settings.ShowArenaCards = arenaCardsValue
@@ -110,7 +110,10 @@ func (a *App) showSettingsScreen() {
 		} else {
 			a.showMainMenu()
 		}
-	})
+	}
+
+	// Add buttons
+	form.AddButton("Save", saveCallback)
 
 	form.AddButton("Cancel", func() {
 		// Go back to menu without saving
@@ -127,14 +130,42 @@ func (a *App) showSettingsScreen() {
 		}
 	})
 
+	// Track current field index and insert mode for vim motions
+	currentFieldIndex := 0
+	insertMode := false
+
+	// Helper function to update title based on insert mode
+	updateTitle := func() {
+		if insertMode {
+			form.SetTitle(" [yellow]Settings - INSERT MODE (ESC to exit)[white] ")
+		} else {
+			form.SetTitle(" [yellow]Settings[white] ")
+		}
+	}
+
 	// Style the form
 	form.SetBorder(true).
 		SetBorderColor(tcell.ColorYellow).
 		SetTitle(" [yellow]Settings[white] ").
 		SetTitleColor(tcell.ColorYellow)
 
-	// Handle ESC key to go back
+	// Handle vim motions and ESC key
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// In insert mode, allow normal input except ESC to exit
+		if insertMode {
+			if event.Key() == tcell.KeyEscape {
+				// ESC exits insert mode
+				insertMode = false
+				updateTitle()
+				// Return focus to form
+				a.app.SetFocus(form)
+				return nil
+			}
+			// Allow all other input in insert mode
+			return event
+		}
+
+		// Normal mode - handle navigation and mode switching
 		if event.Key() == tcell.KeyEscape {
 			// Go back to menu
 			if a.pages.HasPage("settings") {
@@ -150,6 +181,91 @@ func (a *App) showSettingsScreen() {
 			}
 			return nil
 		}
+
+		// Handle Enter key
+		if event.Key() == tcell.KeyEnter {
+			// If on Save button (index 4), trigger the save callback
+			if currentFieldIndex == 4 {
+				saveCallback()
+				return nil
+			}
+			// For other items, let Enter work normally (toggles checkboxes, activates buttons)
+			return event
+		}
+
+		// Handle Space key for toggling checkboxes
+		if event.Key() == tcell.KeyRune && event.Rune() == ' ' {
+			// If on a checkbox (indices 0-2), let space through to toggle
+			if currentFieldIndex >= 0 && currentFieldIndex <= 2 {
+				return event
+			}
+			// Block space for other items
+			return nil
+		}
+
+		// Handle vim motions
+		if event.Key() == tcell.KeyRune {
+			switch event.Rune() {
+			case 'i':
+				// Enter insert mode on text input field (index 3)
+				if currentFieldIndex == 3 {
+					insertMode = true
+					updateTitle()
+					// Focus the input field for immediate editing
+					a.app.SetFocus(pageSizeInput)
+					return nil
+				}
+				// Block i on other fields
+				return nil
+			case 'j':
+				// Move down to next field/button
+				// Form has 4 items (3 checkboxes + 1 input) and 2 buttons
+				// Total indices: 0-5 (items 0-3, buttons 4-5)
+				maxIndex := form.GetFormItemCount() + 1 // Last button index
+				if currentFieldIndex < maxIndex {
+					currentFieldIndex++
+					form.SetFocus(currentFieldIndex)
+				}
+				return nil
+			case 'k':
+				// Move up to previous field/button
+				if currentFieldIndex > 0 {
+					currentFieldIndex--
+					form.SetFocus(currentFieldIndex)
+				}
+				return nil
+			default:
+				// Block other text input in normal mode
+				return nil
+			}
+		}
+
+		// Handle Tab/Shift+Tab for navigation
+		if event.Key() == tcell.KeyTab {
+			maxIndex := form.GetFormItemCount() + 1
+			if currentFieldIndex < maxIndex {
+				currentFieldIndex++
+				form.SetFocus(currentFieldIndex)
+			} else {
+				// Wrap to first field
+				currentFieldIndex = 0
+				form.SetFocus(currentFieldIndex)
+			}
+			return nil
+		}
+		if event.Key() == tcell.KeyBacktab {
+			if currentFieldIndex > 0 {
+				currentFieldIndex--
+				form.SetFocus(currentFieldIndex)
+			} else {
+				// Wrap to last field/button
+				maxIndex := form.GetFormItemCount() + 1
+				currentFieldIndex = maxIndex
+				form.SetFocus(currentFieldIndex)
+			}
+			return nil
+		}
+
 		return event
 	})
 
