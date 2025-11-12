@@ -93,3 +93,39 @@ func (a *App) preloadCollectionCards() {
 	a.allMatchingCards["collection"] = ownedCards
 }
 
+// getListCards filters all cards to only those in the specified list
+func (a *App) getListCards(list collections.List) ([]api.Card, error) {
+	listCards := list.Cards
+	if len(listCards) == 0 {
+		return []api.Card{}, nil
+	}
+
+	// Load all cards from cache
+	allCards, err := api.LoadCardsFromCache()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a map of list card IDs for quick lookup
+	listMap := make(map[string]int) // cardID -> quantity
+	for _, listCard := range listCards {
+		cardID := collections.GetCardID(listCard.SetCode, listCard.CollectorNumber)
+		listMap[cardID] = listCard.Quantity
+	}
+
+	// Filter cards to only those in the list
+	// For each card in the list, add it the specified quantity of times
+	var cardsInList []api.Card
+	for _, card := range allCards {
+		cardID := collections.GetCardID(card.SetCode, card.CollectorNumber)
+		if quantity, exists := listMap[cardID]; exists {
+			// Add the card the specified number of times
+			for i := 0; i < quantity; i++ {
+				cardsInList = append(cardsInList, card)
+			}
+		}
+	}
+
+	return cardsInList, nil
+}
+

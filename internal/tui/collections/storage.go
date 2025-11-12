@@ -28,6 +28,11 @@ func GetCubesFilePath() string {
 	return filepath.Join(GetCollectionsDir(), "cubes.json")
 }
 
+// GetListsFilePath returns the path to the lists file
+func GetListsFilePath() string {
+	return filepath.Join(GetCollectionsDir(), "lists.json")
+}
+
 // EnsureCollectionsDir creates the collections directory if it doesn't exist
 func EnsureCollectionsDir() error {
 	dir := GetCollectionsDir()
