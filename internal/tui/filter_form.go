@@ -6,6 +6,7 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"github.com/chr-hen/mtg-tui/internal/api"
 )
 
 // FilterFormFields holds all the input fields for the filter form
@@ -185,6 +186,11 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	form.SetFieldTextColor(tcell.ColorWhite)
 	form.SetFieldBackgroundColor(tcell.ColorDarkGray)
 
+	// Populate fields from initial query if provided
+	if config.InitialQuery != "" {
+		populateFieldsFromQuery(fields, config.InitialQuery)
+	}
+
 	return form, fields
 }
 
@@ -285,6 +291,105 @@ func buildQueryFromFields(fields *FilterFormFields) string {
 	}
 
 	return strings.Join(queryParts, " ")
+}
+
+// populateFieldsFromQuery populates form fields from a query string
+func populateFieldsFromQuery(fields *FilterFormFields, query string) {
+	if strings.TrimSpace(query) == "" {
+		return
+	}
+
+	conditions, err := api.ParseQuery(query)
+	if err != nil {
+		// If parsing fails, just return without populating
+		return
+	}
+
+	// Track if we've set the name field (for plain text queries without prefixes)
+	nameSet := false
+
+	for _, cond := range conditions {
+		// Build the value with operator if present
+		value := cond.Value
+		if cond.Operator != "" && cond.Operator != "equals" && cond.Operator != "contains" {
+			value = cond.Operator + value
+		}
+
+		// Handle negation
+		if cond.Negate {
+			value = "-" + value
+		}
+
+		switch cond.Field {
+		case "name":
+			// Plain text queries go to name field
+			if !nameSet {
+				fields.Name.SetText(value)
+				nameSet = true
+			} else {
+				// If name already set, append with space
+				current := fields.Name.GetText()
+				fields.Name.SetText(current + " " + value)
+			}
+		case "t", "type":
+			// Remove prefix if present, but keep the value
+			cleanValue := strings.TrimPrefix(value, "t:")
+			cleanValue = strings.TrimPrefix(cleanValue, "type:")
+			fields.Type.SetText(cleanValue)
+		case "c", "color":
+			cleanValue := strings.TrimPrefix(value, "c:")
+			cleanValue = strings.TrimPrefix(cleanValue, "color:")
+			fields.Color.SetText(cleanValue)
+		case "o", "oracle":
+			cleanValue := strings.TrimPrefix(value, "o:")
+			cleanValue = strings.TrimPrefix(cleanValue, "oracle:")
+			fields.Oracle.SetText(cleanValue)
+		case "m", "mana":
+			// Mana cost - could be m: or mv/cmc with operators
+			if strings.HasPrefix(value, "mv") || strings.HasPrefix(value, "cmc") {
+				fields.Mana.SetText(value)
+			} else {
+				cleanValue := strings.TrimPrefix(value, "m:")
+				cleanValue = strings.TrimPrefix(cleanValue, "mana:")
+				fields.Mana.SetText(cleanValue)
+			}
+		case "mv", "manavalue", "cmc":
+			fields.Mana.SetText(value)
+		case "pow", "power":
+			cleanValue := strings.TrimPrefix(value, "pow:")
+			cleanValue = strings.TrimPrefix(cleanValue, "power:")
+			fields.Power.SetText(cleanValue)
+		case "tou", "toughness":
+			cleanValue := strings.TrimPrefix(value, "tou:")
+			cleanValue = strings.TrimPrefix(cleanValue, "toughness:")
+			fields.Toughness.SetText(cleanValue)
+		case "s", "set", "e":
+			cleanValue := strings.TrimPrefix(value, "s:")
+			cleanValue = strings.TrimPrefix(cleanValue, "set:")
+			cleanValue = strings.TrimPrefix(cleanValue, "e:")
+			// Remove quotes if present
+			cleanValue = strings.Trim(cleanValue, `"`)
+			fields.Set.SetText(cleanValue)
+		case "r", "rarity":
+			cleanValue := strings.TrimPrefix(value, "r:")
+			cleanValue = strings.TrimPrefix(cleanValue, "rarity:")
+			fields.Rarity.SetText(cleanValue)
+		case "year":
+			cleanValue := strings.TrimPrefix(value, "year:")
+			fields.Year.SetText(cleanValue)
+		case "a", "artist":
+			cleanValue := strings.TrimPrefix(value, "a:")
+			cleanValue = strings.TrimPrefix(cleanValue, "artist:")
+			fields.Artist.SetText(cleanValue)
+		case "kw", "keyword":
+			cleanValue := strings.TrimPrefix(value, "kw:")
+			cleanValue = strings.TrimPrefix(cleanValue, "keyword:")
+			fields.Keyword.SetText(cleanValue)
+		case "is":
+			cleanValue := strings.TrimPrefix(value, "is:")
+			fields.Is.SetText(cleanValue)
+		}
+	}
 }
 
 // clearFilterFields clears all fields in the filter form
