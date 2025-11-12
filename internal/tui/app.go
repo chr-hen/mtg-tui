@@ -49,7 +49,13 @@ func NewApp() *App {
 		settings = &Settings{
 			ShowArenaCards: false,
 			ShowTypeCard:   false,
+			ShowArtCards:   false,
+			PageSize:       10,
 		}
+	}
+	// Ensure PageSize has a valid default if not set (for old config files)
+	if settings.PageSize <= 0 {
+		settings.PageSize = 10
 	}
 
 	// Load collection

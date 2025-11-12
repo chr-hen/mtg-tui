@@ -106,7 +106,7 @@ func (a *App) showCollection() {
 	a.currentPage = 1
 	
 	// Use unified pagination
-	pageSize := 10
+	pageSize := a.settings.PageSize
 	a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 
 	// Create table view for multi-line card display
@@ -362,7 +362,7 @@ func (a *App) showCollection() {
 
 // updateCollectionTitle updates the title of the collection view
 func (a *App) updateCollectionTitle() {
-	pageSize := 10
+	pageSize := a.settings.PageSize
 	// Use TotalCards from pagination info (total unique cards across all pages)
 	totalUniqueCards := a.pagination.TotalCards
 	totalPages := 1
@@ -447,7 +447,7 @@ func (a *App) loadCollectionPage() {
 	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard, a.settings.ShowArtCards)
 
 	// Use unified pagination
-	pageSize := 10
+	pageSize := a.settings.PageSize
 	a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 
 	a.populateList()

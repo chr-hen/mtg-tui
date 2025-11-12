@@ -68,7 +68,7 @@ func (a *App) showCardList() {
 	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard, a.settings.ShowArtCards)
 
 	// Use unified pagination
-	pageSize := 10
+	pageSize := a.settings.PageSize
 	a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 
 	// Create table view for multi-line card display
@@ -338,7 +338,7 @@ func (a *App) populateList() {
 }
 
 func (a *App) updateListTitle() {
-	pageSize := 10
+	pageSize := a.settings.PageSize
 	totalPages := 1
 	if a.pagination.TotalCards > 0 {
 		// Calculate total pages: ceiling division

@@ -58,7 +58,7 @@ func (a *App) loadPageFromCache() {
 		cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard, a.settings.ShowArtCards)
 
 		// Use cached data with unified pagination
-		pageSize := 10
+		pageSize := a.settings.PageSize
 		a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 	}
 

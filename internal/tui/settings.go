@@ -12,6 +12,7 @@ type Settings struct {
 	ShowArenaCards bool `json:"show_arena_cards"` // Show cards with names starting with "A-"
 	ShowTypeCard   bool `json:"show_type_card"`   // Show cards with type "card"
 	ShowArtCards   bool `json:"show_art_cards"`   // Show art cards with type "Card // Card"
+	PageSize       int  `json:"page_size"`        // Number of cards to show per page
 }
 
 // GetSettingsFilePath returns the path to the settings file
@@ -31,6 +32,7 @@ func LoadSettings() (*Settings, error) {
 			ShowArenaCards: false, // Default to hiding Arena cards
 			ShowTypeCard:   false, // Default to hiding cards with type "card"
 			ShowArtCards:   false, // Default to hiding art cards
+			PageSize:       10,    // Default to 10 cards per page
 		}, nil
 	}
 	

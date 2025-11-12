@@ -35,6 +35,25 @@ func (a *App) showSettingsScreen() {
 	form.AddCheckbox("Show art cards", artCardsValue, func(checked bool) {
 		artCardsValue = checked
 	})
+	
+	// Track page size input
+	pageSizeValue := fmt.Sprintf("%d", a.settings.PageSize)
+	pageSizeInput := tview.NewInputField().
+		SetLabel("Cards per page: ").
+		SetText(pageSizeValue).
+		SetFieldWidth(5).
+		SetAcceptanceFunc(func(textToCheck string, lastChar rune) bool {
+			// Only allow digits
+			if lastChar < '0' || lastChar > '9' {
+				return false
+			}
+			// Limit to reasonable values (1-100)
+			if len(textToCheck) > 3 {
+				return false
+			}
+			return true
+		})
+	form.AddFormItem(pageSizeInput)
 
 	// Add buttons
 	form.AddButton("Save", func() {
@@ -43,6 +62,23 @@ func (a *App) showSettingsScreen() {
 		a.settings.ShowArenaCards = arenaCardsValue
 		a.settings.ShowTypeCard = typeCardValue
 		a.settings.ShowArtCards = artCardsValue
+		
+		// Parse and update page size
+		pageSizeText := pageSizeInput.GetText()
+		var pageSize int
+		if n, err := fmt.Sscanf(pageSizeText, "%d", &pageSize); n == 1 && err == nil && pageSize > 0 {
+			a.settings.PageSize = pageSize
+		} else {
+			// Invalid input, show error and don't save
+			errorModal := tview.NewModal().
+				SetText("Invalid page size. Please enter a number between 1 and 100.").
+				AddButtons([]string{"OK"}).
+				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+					a.pages.RemovePage("settings_error")
+				})
+			a.pages.AddPage("settings_error", errorModal, true, true)
+			return
+		}
 		
 		// Save to file
 		if err := SaveSettings(a.settings); err != nil {
