@@ -3,22 +3,17 @@ package tui
 import (
 	"github.com/chr-hen/mtg-tui/internal/api"
 	"github.com/chr-hen/mtg-tui/internal/tui/collections"
+	"github.com/chr-hen/mtg-tui/internal/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
-
-// CardGroup represents a card with all its printings across different sets
-type CardGroup struct {
-	Card      api.Card   // The "canonical" card (we'll use the first one or one with most common data)
-	Printings []api.Card // All printings of this card
-}
 
 type App struct {
 	app          *tview.Application
 	currentPage  int
 	currentQuery string
 	cards        []api.Card
-	cardGroups   []CardGroup // Grouped cards for display
+	cardGroups   []util.CardGroup // Grouped cards for display
 	pagination   api.PaginationInfo
 	table        *tview.Table
 	menu         *tview.List
@@ -85,8 +80,6 @@ func NewApp() *App {
 
 	// Pre-load collection data in background
 	go a.preloadCollectionCards()
-	go a.preloadDecks()
-	go a.preloadLists()
 
 	return a
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/chr-hen/mtg-tui/internal/api"
+	"github.com/chr-hen/mtg-tui/internal/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -74,7 +75,7 @@ func (a *App) showCollection() {
 	}
 
 	// Group owned cards by name
-	cardGroups := a.groupCardsByName(ownedCards)
+	cardGroups := util.GroupCardsByName(ownedCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 	// Set up for display
 	a.currentQuery = "collection"
@@ -82,10 +83,7 @@ func (a *App) showCollection() {
 	
 	// Use unified pagination
 	pageSize := 10
-	a.paginateCardGroups(cardGroups, a.currentPage, pageSize)
-
-	// Pre-load next 2 pages in background
-	go a.preloadCardGroupPages("collection", cardGroups, a.currentPage, pageSize)
+	a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 
 	// Create table view for multi-line card display
 	a.table = tview.NewTable()
@@ -360,14 +358,11 @@ func (a *App) loadCollectionPage() {
 	}
 
 	// Group owned cards by name
-	cardGroups := a.groupCardsByName(allCollectionCards)
+	cardGroups := util.GroupCardsByName(allCollectionCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 	// Use unified pagination
 	pageSize := 10
-	a.paginateCardGroups(cardGroups, a.currentPage, pageSize)
-
-	// Pre-load next 2 pages in background
-	go a.preloadCardGroupPages("collection", cardGroups, a.currentPage, pageSize)
+	a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 
 	a.populateList()
 	a.updateCollectionTitle()

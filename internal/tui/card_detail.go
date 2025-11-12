@@ -5,12 +5,13 @@ import (
 	"strings"
 
 	"github.com/chr-hen/mtg-tui/internal/tui/collections"
+	"github.com/chr-hen/mtg-tui/internal/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 // showCardDetail creates and displays a modal with card info, showing all printings
-func (a *App) showCardDetail(pages *tview.Pages, group CardGroup) {
+func (a *App) showCardDetail(pages *tview.Pages, group util.CardGroup) {
 	card := group.Card // Use canonical card for main info
 
 	// Format rarity with proper capitalization
@@ -92,7 +93,7 @@ func (a *App) showCardDetail(pages *tview.Pages, group CardGroup) {
 }
 
 // showPrintingsModal displays all printings in a scrollable list with ownership toggles
-func (a *App) showPrintingsModal(pages *tview.Pages, group CardGroup) {
+func (a *App) showPrintingsModal(pages *tview.Pages, group util.CardGroup) {
 	// Remove old printings page if it exists
 	if a.pages.HasPage("printings") {
 		a.pages.RemovePage("printings")

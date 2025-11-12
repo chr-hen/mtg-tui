@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 // Settings represents user preferences
@@ -69,15 +68,5 @@ func SaveSettings(settings *Settings) error {
 	}
 	
 	return nil
-}
-
-// IsArenaCard checks if a card name indicates it's an Arena card (starts with "A-")
-func IsArenaCard(cardName string) bool {
-	return len(cardName) >= 2 && cardName[0] == 'A' && cardName[1] == '-'
-}
-
-// IsTypeCard checks if a card's type line is exactly "card"
-func IsTypeCard(typeLine string) bool {
-	return strings.ToLower(strings.TrimSpace(typeLine)) == "card"
 }
 

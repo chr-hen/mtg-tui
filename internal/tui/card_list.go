@@ -2,12 +2,10 @@ package tui
 
 import (
 	"fmt"
-	"sort"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/chr-hen/mtg-tui/internal/api"
+	"github.com/chr-hen/mtg-tui/internal/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -33,28 +31,25 @@ func (a *App) showCardList() {
 			return
 		}
 		// Sort the cards according to current sort settings
-		a.sortCards(&allCards)
+		util.SortCards(&allCards, a.sortField, a.sortAscending)
 		// Cache all matching cards
 		a.allMatchingCards[a.currentQuery] = allCards
 		// Initialize page cache for this query
 		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
 	} else {
 		// Re-sort cached cards if sort settings changed
-		a.sortCards(&allCards)
+		util.SortCards(&allCards, a.sortField, a.sortAscending)
 		a.allMatchingCards[a.currentQuery] = allCards
 		// Clear page cache when sort changes
 		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
 	}
 
 	// Group cards by name
-	cardGroups := a.groupCardsByName(allCards)
+	cardGroups := util.GroupCardsByName(allCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 	// Use unified pagination
 	pageSize := 10
-	a.paginateCardGroups(cardGroups, a.currentPage, pageSize)
-
-	// Pre-load next 2 pages in background
-	go a.preloadCardGroupPages(a.currentQuery, cardGroups, a.currentPage, pageSize)
+	a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 
 	// Create table view for multi-line card display
 	a.table = tview.NewTable()
@@ -134,7 +129,7 @@ func (a *App) showCardList() {
 				a.sortAscending = !a.sortAscending
 				// Re-sort and refresh
 				if allCards, exists := a.allMatchingCards[a.currentQuery]; exists {
-					a.sortCards(&allCards)
+					util.SortCards(&allCards, a.sortField, a.sortAscending)
 					a.allMatchingCards[a.currentQuery] = allCards
 					a.pageCache[a.currentQuery] = make(map[int][]api.Card)
 					a.currentPage = 1
@@ -317,56 +312,6 @@ func (a *App) populateList() {
 	}
 }
 
-// groupCardsByName groups cards by their name, collecting all printings
-// Also filters out Arena cards if the setting is disabled
-func (a *App) groupCardsByName(cards []api.Card) []CardGroup {
-	groupsMap := make(map[string]*CardGroup)
-	
-	for _, card := range cards {
-		// Filter out Arena cards if setting is disabled
-		if !a.settings.ShowArenaCards && IsArenaCard(card.Name) {
-			continue
-		}
-		
-		// Filter out cards with type "card" if setting is disabled
-		if !a.settings.ShowTypeCard && IsTypeCard(card.TypeLine) {
-			continue
-		}
-		
-		cardName := strings.ToLower(card.Name)
-		if group, exists := groupsMap[cardName]; exists {
-			// Add this printing to the existing group
-			group.Printings = append(group.Printings, card)
-		} else {
-			// Create a new group
-			groupsMap[cardName] = &CardGroup{
-				Card:      card, // Use first occurrence as canonical
-				Printings: []api.Card{card},
-			}
-		}
-	}
-
-	// Convert map to slice and sort by canonical card name
-	groups := make([]CardGroup, 0, len(groupsMap))
-	for _, group := range groupsMap {
-		// Sort printings by set code, then collector number
-		sort.Slice(group.Printings, func(i, j int) bool {
-			if group.Printings[i].SetCode != group.Printings[j].SetCode {
-				return group.Printings[i].SetCode < group.Printings[j].SetCode
-			}
-			return compareCollectorNumbers(group.Printings[i].CollectorNumber, group.Printings[j].CollectorNumber)
-		})
-		groups = append(groups, *group)
-	}
-
-	// Sort groups by canonical card name
-	sort.Slice(groups, func(i, j int) bool {
-		return strings.ToLower(groups[i].Card.Name) < strings.ToLower(groups[j].Card.Name)
-	})
-
-	return groups
-}
-
 func (a *App) updateListTitle() {
 	pageSize := 10
 	totalPages := 1
@@ -445,152 +390,10 @@ func (a *App) cycleSortField() {
 	}
 	// Re-sort and refresh
 	if allCards, exists := a.allMatchingCards[a.currentQuery]; exists {
-		a.sortCards(&allCards)
+		util.SortCards(&allCards, a.sortField, a.sortAscending)
 		a.allMatchingCards[a.currentQuery] = allCards
 		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
 		a.currentPage = 1
 		a.showCardList()
 	}
-}
-
-// sortCards sorts cards according to the current sort field and direction
-func (a *App) sortCards(cards *[]api.Card) {
-	sort.Slice(*cards, func(i, j int) bool {
-		less := a.compareCards((*cards)[i], (*cards)[j])
-		if !a.sortAscending {
-			return !less
-		}
-		return less
-	})
-}
-
-// compareCards compares two cards based on the current sort field
-func (a *App) compareCards(card1, card2 api.Card) bool {
-	switch a.sortField {
-	case "name":
-		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
-	case "released":
-		// Parse release dates and compare
-		date1, err1 := time.Parse("2006-01-02", card1.ReleasedAt)
-		date2, err2 := time.Parse("2006-01-02", card2.ReleasedAt)
-		if err1 != nil && err2 != nil {
-			return false
-		}
-		if err1 != nil {
-			return false
-		}
-		if err2 != nil {
-			return true
-		}
-		return date1.Before(date2)
-	case "set":
-		// Sort by set code, then collector number
-		if card1.SetCode != card2.SetCode {
-			return card1.SetCode < card2.SetCode
-		}
-		return compareCollectorNumbers(card1.CollectorNumber, card2.CollectorNumber)
-	case "rarity":
-		// Rarity order: Common < Uncommon < Rare < Mythic
-		rarityOrder := map[string]int{
-			"common":   1,
-			"uncommon": 2,
-			"rare":     3,
-			"mythic":   4,
-		}
-		rarity1 := rarityOrder[strings.ToLower(card1.Rarity)]
-		rarity2 := rarityOrder[strings.ToLower(card2.Rarity)]
-		if rarity1 == 0 {
-			rarity1 = 99
-		}
-		if rarity2 == 0 {
-			rarity2 = 99
-		}
-		if rarity1 != rarity2 {
-			return rarity1 < rarity2
-		}
-		// If same rarity, sort by name
-		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
-	case "color":
-		// Sort by number of colors, then by color identity
-		if len(card1.Colors) != len(card2.Colors) {
-			return len(card1.Colors) < len(card2.Colors)
-		}
-		// If same number of colors, compare color identity strings
-		colors1 := strings.Join(card1.Colors, "")
-		colors2 := strings.Join(card2.Colors, "")
-		if colors1 != colors2 {
-			return colors1 < colors2
-		}
-		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
-	case "cmc":
-		if card1.CMC != card2.CMC {
-			return card1.CMC < card2.CMC
-		}
-		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
-	case "power":
-		power1, err1 := parsePowerToughness(card1.Power)
-		power2, err2 := parsePowerToughness(card2.Power)
-		if err1 != nil && err2 != nil {
-			return false
-		}
-		if err1 != nil {
-			return false
-		}
-		if err2 != nil {
-			return true
-		}
-		if power1 != power2 {
-			return power1 < power2
-		}
-		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
-	case "toughness":
-		tough1, err1 := parsePowerToughness(card1.Toughness)
-		tough2, err2 := parsePowerToughness(card2.Toughness)
-		if err1 != nil && err2 != nil {
-			return false
-		}
-		if err1 != nil {
-			return false
-		}
-		if err2 != nil {
-			return true
-		}
-		if tough1 != tough2 {
-			return tough1 < tough2
-		}
-		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
-	default:
-		return strings.ToLower(card1.Name) < strings.ToLower(card2.Name)
-	}
-}
-
-// compareCollectorNumbers compares two collector numbers (helper function)
-func compareCollectorNumbers(a, b string) bool {
-	// Try to parse as integers first
-	numA, errA := strconv.Atoi(a)
-	numB, errB := strconv.Atoi(b)
-
-	// If both are numeric, compare numerically
-	if errA == nil && errB == nil {
-		return numA < numB
-	}
-
-	// If one is numeric and one isn't, numeric comes first
-	if errA == nil && errB != nil {
-		return true
-	}
-	if errA != nil && errB == nil {
-		return false
-	}
-
-	// Both are alphanumeric, compare as strings
-	return strings.ToLower(a) < strings.ToLower(b)
-}
-
-// parsePowerToughness parses power/toughness values, handling * and other special values
-func parsePowerToughness(value string) (float64, error) {
-	if value == "" || value == "*" {
-		return 0, fmt.Errorf("cannot parse special value")
-	}
-	return strconv.ParseFloat(value, 64)
 }

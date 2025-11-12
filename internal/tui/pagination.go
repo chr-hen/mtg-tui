@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/chr-hen/mtg-tui/internal/api"
+	"github.com/chr-hen/mtg-tui/internal/util"
 	"github.com/rivo/tview"
 )
 
@@ -39,14 +40,11 @@ func (a *App) loadPageFromCache() {
 		a.pagination = result.Pagination
 	} else {
 		// Group cards by name
-		cardGroups := a.groupCardsByName(allCards)
+		cardGroups := util.GroupCardsByName(allCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 		// Use cached data with unified pagination
 		pageSize := 10
-		a.paginateCardGroups(cardGroups, a.currentPage, pageSize)
-
-		// Pre-load next pages in background (using CardGroups)
-		go a.preloadCardGroupPages(a.currentQuery, cardGroups, a.currentPage, pageSize)
+		a.cardGroups, a.pagination = util.PaginateCardGroups(cardGroups, a.currentPage, pageSize)
 	}
 
 	a.populateList()
@@ -60,13 +58,5 @@ func (a *App) loadPageFromCache() {
 		a.table.Select(0, 0) // Reset to top of table
 		a.app.SetFocus(a.table)
 	}
-}
-
-// preloadPages pre-loads the next few pages in the background for faster navigation
-// This is a legacy function that converts cards to groups and uses the unified preloader
-func (a *App) preloadPages(query string, currentPage int, allCards []api.Card, pageSize int) {
-	// Group cards first, then use unified preloader
-	cardGroups := a.groupCardsByName(allCards)
-	a.preloadCardGroupPages(query, cardGroups, currentPage, pageSize)
 }
 
