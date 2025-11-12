@@ -27,11 +27,11 @@ type FilterFormFields struct {
 
 // FilterFormConfig holds configuration for creating a filter form
 type FilterFormConfig struct {
-	Title          string
-	ApplyCallback  func(query string)
-	ClearCallback  func()
-	BackCallback   func()
-	InitialQuery   string
+	Title         string
+	ApplyCallback func(query string)
+	ClearCallback func()
+	BackCallback  func()
+	InitialQuery  string
 }
 
 // createFilterForm creates a reusable filter form with all common fields
@@ -401,12 +401,34 @@ func (a *App) setupFilterFormInputHandling(
 			// Block all other text input in normal mode
 			return nil
 		}
-		// Allow Tab/Shift+Tab for navigation
+		// Handle Tab/Shift+Tab for navigation
 		if event.Key() == tcell.KeyTab {
-			// Tab navigation - update currentFieldIndex after navigation
-			return event
+			// Tab navigation - move to next field/button
+			// All forms using this function have 3 buttons, so maxIndex = formItems + 2 (for indices N, N+1, N+2)
+			maxIndex := form.GetFormItemCount() + 2
+			if currentFieldIndex < maxIndex {
+				currentFieldIndex++
+				form.SetFocus(currentFieldIndex)
+			} else {
+				// Wrap to first field
+				currentFieldIndex = 0
+				form.SetFocus(currentFieldIndex)
+			}
+			return nil
+		}
+		if event.Key() == tcell.KeyBacktab {
+			// Shift+Tab navigation - move to previous field/button
+			if currentFieldIndex > 0 {
+				currentFieldIndex--
+				form.SetFocus(currentFieldIndex)
+			} else {
+				// Wrap to last field/button
+				maxIndex := form.GetFormItemCount() + 2
+				currentFieldIndex = maxIndex
+				form.SetFocus(currentFieldIndex)
+			}
+			return nil
 		}
 		return event
 	})
 }
-
