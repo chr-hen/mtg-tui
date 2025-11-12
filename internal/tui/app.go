@@ -32,7 +32,9 @@ type App struct {
 	// Settings
 	settings *Settings
 	// Collections
-	collection *collections.Collection
+	collection            *collections.Collection
+	collectionFilterQuery string // Filter query for collection view
+	searchFilterQuery     string // Filter query for search results view
 }
 
 func NewApp() *App {
@@ -60,19 +62,21 @@ func NewApp() *App {
 	}
 
 	a := &App{
-		app:              app,
-		currentPage:      1,
-		currentQuery:     "",
-		pageCache:        make(map[string]map[int][]api.Card),
-		allMatchingCards: make(map[string][]api.Card),
-		uniqueTypes:      []string{},
-		uniqueSets:       []string{},
-		uniqueRarities:   []string{},
-		uniqueKeywords:   []string{},
-		sortField:        "name", // Default to name sort
-		sortAscending:    true,
-		settings:         settings,
-		collection:       collection,
+		app:                   app,
+		currentPage:           1,
+		currentQuery:          "",
+		pageCache:             make(map[string]map[int][]api.Card),
+		allMatchingCards:      make(map[string][]api.Card),
+		uniqueTypes:           []string{},
+		uniqueSets:            []string{},
+		uniqueRarities:        []string{},
+		uniqueKeywords:        []string{},
+		sortField:             "name", // Default to name sort
+		sortAscending:         true,
+		settings:              settings,
+		collection:            collection,
+		collectionFilterQuery: "", // No filter by default
+		searchFilterQuery:     "", // No filter by default
 	}
 
 	// Load autocomplete data in background

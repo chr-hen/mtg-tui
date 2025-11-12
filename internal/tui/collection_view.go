@@ -74,8 +74,32 @@ func (a *App) showCollection() {
 		ownedCards = allCollectionCards
 	}
 
-	// Group owned cards by name
-	cardGroups := util.GroupCardsByName(ownedCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
+	// Sort the cards according to current sort settings
+	util.SortCards(&allCollectionCards, a.sortField, a.sortAscending)
+	a.allMatchingCards["collection"] = allCollectionCards
+
+	// Apply filters to collection cards
+	filteredCards, err := a.applyCollectionFilters(allCollectionCards)
+	if err != nil {
+		// Show error modal
+		errorModal := tview.NewModal().
+			SetText(fmt.Sprintf("Error applying filters: %v", err)).
+			AddButtons([]string{"OK"}).
+			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+				a.pages.RemovePage("collection_filter_error")
+				if a.pages.HasPage("collection") {
+					a.pages.SwitchToPage("collection")
+					if a.table != nil {
+						a.app.SetFocus(a.table)
+					}
+				}
+			})
+		a.pages.AddPage("collection_filter_error", errorModal, true, true)
+		return
+	}
+
+	// Group filtered cards by name
+	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 	// Set up for display
 	a.currentQuery = "collection"
@@ -158,6 +182,11 @@ func (a *App) showCollection() {
 		// Handle VIM keys
 		if event.Key() == tcell.KeyRune {
 			rune := event.Rune()
+			if rune == 'f' {
+				// Open filter panel
+				a.showCollectionFilter()
+				return nil
+			}
 			if rune == 'j' {
 				// Move down - skip to next card (4 rows per card: 3 content + 1 blank)
 				row, _ := a.table.GetSelection()
@@ -189,6 +218,23 @@ func (a *App) showCollection() {
 				if a.currentPage > 1 {
 					a.currentPage--
 					a.loadCollectionPage()
+				}
+				return nil
+			}
+			if rune == 's' {
+				// Cycle through sort options
+				a.cycleSortField()
+				return nil
+			}
+			if rune == 'S' {
+				// Toggle sort direction
+				a.sortAscending = !a.sortAscending
+				// Re-sort and refresh
+				if allCards, exists := a.allMatchingCards["collection"]; exists {
+					util.SortCards(&allCards, a.sortField, a.sortAscending)
+					a.allMatchingCards["collection"] = allCards
+					a.currentPage = 1
+					a.showCollection()
 				}
 				return nil
 			}
@@ -242,7 +288,7 @@ func (a *App) showCollection() {
 	})
 
 	// Create footer with keyboard shortcuts
-	footerText := "j/k: navigate, Enter: view details, Esc: back"
+	footerText := "f: filter | s: sort | S: direction | j/k: navigate | h/l: pages | Enter: view details | Esc: back"
 	footerBox := tview.NewBox().
 		SetBorder(true).
 		SetBorderColor(tcell.ColorYellow).
@@ -328,7 +374,36 @@ func (a *App) updateCollectionTitle() {
 		}
 	}
 
+	// Get sort field display name
+	sortFieldNames := map[string]string{
+		"name":      "Name",
+		"released":  "Release Date",
+		"set":       "Set/Number",
+		"rarity":    "Rarity",
+		"color":     "Color",
+		"cmc":       "Mana Value",
+		"power":     "Power",
+		"toughness": "Toughness",
+	}
+	sortFieldDisplay := sortFieldNames[a.sortField]
+	if sortFieldDisplay == "" {
+		sortFieldDisplay = "Name"
+	}
+	sortDir := "↑"
+	if !a.sortAscending {
+		sortDir = "↓"
+	}
+
 	title := fmt.Sprintf("My Collection - Page %d/%d", a.currentPage, totalPages)
+	if a.collectionFilterQuery != "" {
+		// Truncate long filter queries
+		filterDisplay := a.collectionFilterQuery
+		if len(filterDisplay) > 25 {
+			filterDisplay = filterDisplay[:22] + "..."
+		}
+		title += fmt.Sprintf(" | Filter: %s", filterDisplay)
+	}
+	title += fmt.Sprintf(" | Sort: %s %s", sortFieldDisplay, sortDir)
 	if totalUniqueCards > 0 {
 		title += fmt.Sprintf(" | Total: %d unique cards", totalUniqueCards)
 		// Count total printings across all owned printings in collection
@@ -357,8 +432,19 @@ func (a *App) loadCollectionPage() {
 		a.allMatchingCards["collection"] = allCollectionCards
 	}
 
-	// Group owned cards by name
-	cardGroups := util.GroupCardsByName(allCollectionCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
+	// Sort the cards according to current sort settings
+	util.SortCards(&allCollectionCards, a.sortField, a.sortAscending)
+	a.allMatchingCards["collection"] = allCollectionCards
+
+	// Apply filters to collection cards
+	filteredCards, err := a.applyCollectionFilters(allCollectionCards)
+	if err != nil {
+		// Silently fail - show unfiltered cards
+		filteredCards = allCollectionCards
+	}
+
+	// Group filtered cards by name
+	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 	// Use unified pagination
 	pageSize := 10

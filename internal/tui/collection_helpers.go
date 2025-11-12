@@ -37,6 +37,46 @@ func (a *App) getCollectionCards() ([]api.Card, error) {
 	return ownedCards, nil
 }
 
+// applyCardFilters applies a filter query to a set of cards
+// This is a generic function that can be used for collection, search results, etc.
+func applyCardFilters(cards []api.Card, filterQuery string) ([]api.Card, error) {
+	// If no filter, return all cards
+	if filterQuery == "" {
+		return cards, nil
+	}
+
+	// Parse the filter query
+	conditions, err := api.ParseQuery(filterQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	// If no conditions, return all cards
+	if len(conditions) == 0 {
+		return cards, nil
+	}
+
+	// Filter cards based on conditions
+	var filteredCards []api.Card
+	for _, card := range cards {
+		if api.MatchesCard(card, conditions) {
+			filteredCards = append(filteredCards, card)
+		}
+	}
+
+	return filteredCards, nil
+}
+
+// applyCollectionFilters applies the current collection filter query to cards
+func (a *App) applyCollectionFilters(cards []api.Card) ([]api.Card, error) {
+	return applyCardFilters(cards, a.collectionFilterQuery)
+}
+
+// applySearchFilters applies the current search filter query to cards
+func (a *App) applySearchFilters(cards []api.Card) ([]api.Card, error) {
+	return applyCardFilters(cards, a.searchFilterQuery)
+}
+
 // preloadCollectionCards pre-loads collection cards in the background
 func (a *App) preloadCollectionCards() {
 	// Get collection cards

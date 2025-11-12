@@ -17,6 +17,7 @@ type CardGroup struct {
 }
 
 // GroupCardsByName groups cards by their name, collecting all printings
+// Note: This function preserves the order of cards as they appear in the input slice
 func GroupCardsByName(cards []api.Card, showArenaCards bool, showTypeCard bool) []CardGroup {
 	groupsMap := make(map[string]*CardGroup)
 
@@ -44,23 +45,41 @@ func GroupCardsByName(cards []api.Card, showArenaCards bool, showTypeCard bool) 
 		}
 	}
 
-	// Convert map to slice and sort by canonical card name
-	groups := make([]CardGroup, 0, len(groupsMap))
-	for _, group := range groupsMap {
-		// Sort printings by set code, then collector number
-		sort.Slice(group.Printings, func(i, j int) bool {
-			if group.Printings[i].SetCode != group.Printings[j].SetCode {
-				return group.Printings[i].SetCode < group.Printings[j].SetCode
-			}
-			return CompareCollectorNumbers(group.Printings[i].CollectorNumber, group.Printings[j].CollectorNumber)
-		})
-		groups = append(groups, *group)
+	// Convert map to slice, preserving order from input
+	// Create a mapping to track first occurrence order
+	groupOrder := make([]string, 0, len(groupsMap))
+	seenNames := make(map[string]bool)
+	
+	for _, card := range cards {
+		// Skip filtered cards
+		if !showArenaCards && IsArenaCard(card.Name) {
+			continue
+		}
+		if !showTypeCard && IsTypeCard(card.TypeLine) {
+			continue
+		}
+		
+		cardName := strings.ToLower(card.Name)
+		if !seenNames[cardName] {
+			groupOrder = append(groupOrder, cardName)
+			seenNames[cardName] = true
+		}
 	}
-
-	// Sort groups by canonical card name
-	sort.Slice(groups, func(i, j int) bool {
-		return strings.ToLower(groups[i].Card.Name) < strings.ToLower(groups[j].Card.Name)
-	})
+	
+	// Build groups in the order they appeared in the sorted input
+	groups := make([]CardGroup, 0, len(groupsMap))
+	for _, cardName := range groupOrder {
+		if group, exists := groupsMap[cardName]; exists {
+			// Sort printings by set code, then collector number
+			sort.Slice(group.Printings, func(i, j int) bool {
+				if group.Printings[i].SetCode != group.Printings[j].SetCode {
+					return group.Printings[i].SetCode < group.Printings[j].SetCode
+				}
+				return CompareCollectorNumbers(group.Printings[i].CollectorNumber, group.Printings[j].CollectorNumber)
+			})
+			groups = append(groups, *group)
+		}
+	}
 
 	return groups
 }

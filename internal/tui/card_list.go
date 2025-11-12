@@ -44,8 +44,28 @@ func (a *App) showCardList() {
 		a.pageCache[a.currentQuery] = make(map[int][]api.Card)
 	}
 
-	// Group cards by name
-	cardGroups := util.GroupCardsByName(allCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
+	// Apply search filters to the cards
+	filteredCards, err := a.applySearchFilters(allCards)
+	if err != nil {
+		// Show error modal
+		errorModal := tview.NewModal().
+			SetText(fmt.Sprintf("Error applying filters: %v", err)).
+			AddButtons([]string{"OK"}).
+			SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+				a.pages.RemovePage("search_filter_error")
+				if a.pages.HasPage("list") {
+					a.pages.SwitchToPage("list")
+					if a.table != nil {
+						a.app.SetFocus(a.table)
+					}
+				}
+			})
+		a.pages.AddPage("search_filter_error", errorModal, true, true)
+		return
+	}
+
+	// Group filtered cards by name
+	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 	// Use unified pagination
 	pageSize := 10
@@ -87,6 +107,11 @@ func (a *App) showCardList() {
 		// Handle VIM keys
 		if event.Key() == tcell.KeyRune {
 			rune := event.Rune()
+			if rune == 'f' {
+				// Open filter panel for search results
+				a.showSearchFilter()
+				return nil
+			}
 			if rune == 'j' {
 				// Move down - skip to next card (4 rows per card: 3 content + 1 blank)
 				row, _ := a.table.GetSelection()
@@ -169,7 +194,7 @@ func (a *App) showCardList() {
 	})
 
 	// Create footer using Box with custom drawing to ensure text is visible
-	footerText := "s: sort | S: direction | j/k: navigate | h/l: pages | Enter: details | Esc: back"
+	footerText := "f: filter | s: sort | S: direction | j/k: navigate | h/l: pages | Enter: details | Esc: back"
 	footerBox := tview.NewBox().
 		SetBorder(true).
 		SetBorderColor(tcell.ColorYellow).
@@ -351,6 +376,14 @@ func (a *App) updateListTitle() {
 			queryDisplay = queryDisplay[:22] + "..."
 		}
 		title += fmt.Sprintf(" | Query: %s", queryDisplay)
+	}
+	if a.searchFilterQuery != "" {
+		// Truncate long filter queries
+		filterDisplay := a.searchFilterQuery
+		if len(filterDisplay) > 25 {
+			filterDisplay = filterDisplay[:22] + "..."
+		}
+		title += fmt.Sprintf(" | Filter: %s", filterDisplay)
 	}
 	title += fmt.Sprintf(" | Sort: %s %s", sortFieldDisplay, sortDir)
 	if a.pagination.TotalCards > 0 {

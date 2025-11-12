@@ -39,8 +39,23 @@ func (a *App) loadPageFromCache() {
 		a.cards = result.Cards
 		a.pagination = result.Pagination
 	} else {
-		// Group cards by name
-		cardGroups := util.GroupCardsByName(allCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
+		// Apply appropriate filters based on current view
+		var filteredCards []api.Card
+		var err error
+		if a.currentQuery == "collection" {
+			// Apply collection filters
+			filteredCards, err = a.applyCollectionFilters(allCards)
+		} else {
+			// Apply search filters
+			filteredCards, err = a.applySearchFilters(allCards)
+		}
+		if err != nil {
+			// Silently fail - show unfiltered cards
+			filteredCards = allCards
+		}
+
+		// Group filtered cards by name
+		cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
 
 		// Use cached data with unified pagination
 		pageSize := 10
