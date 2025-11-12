@@ -194,19 +194,19 @@ func matchesType(card Card, value string) bool {
 	// This prevents "cow" from matching "coward"
 	value = strings.ToLower(value)
 	typeLine := strings.ToLower(card.TypeLine)
-	
+
 	// Use word boundaries to match whole words
 	// Split by common separators (space, dash, em dash) and check each word
 	words := strings.FieldsFunc(typeLine, func(r rune) bool {
 		return r == ' ' || r == '-' || r == '—' || r == '/' || r == ','
 	})
-	
+
 	for _, word := range words {
 		if word == value {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -373,7 +373,14 @@ func matchesRarity(card Card, value string) bool {
 
 func matchesSet(card Card, value string) bool {
 	value = strings.ToUpper(value)
-	return strings.ToUpper(card.SetCode) == value || strings.Contains(strings.ToUpper(card.Set), value)
+	// First check set code (exact match)
+	if strings.ToUpper(card.SetCode) == value {
+		return true
+	}
+	// Then check set name (exact match, case-insensitive)
+	// This prevents "Foundations" from matching "Foundations Art Series"
+	setNameUpper := strings.ToUpper(strings.TrimSpace(card.Set))
+	return setNameUpper == value
 }
 
 func matchesYear(card Card, value string, op string) bool {
@@ -381,17 +388,17 @@ func matchesYear(card Card, value string, op string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	// Parse year from released_at date string (format: "2020-01-01")
 	if card.ReleasedAt == "" {
 		return false
 	}
-	
+
 	// Extract year from date string (first 4 characters)
 	if len(card.ReleasedAt) < 4 {
 		return false
 	}
-	
+
 	cardYear, err := strconv.Atoi(card.ReleasedAt[:4])
 	if err != nil {
 		return false
@@ -454,4 +461,3 @@ func compareValues(cardValue, queryValue float64, op string) bool {
 		return cardValue == queryValue
 	}
 }
-
