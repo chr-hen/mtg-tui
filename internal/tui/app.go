@@ -34,6 +34,7 @@ type App struct {
 	settings *models.Settings
 	// Collections
 	collection            *collections.Collection
+	wants                 *collections.Wants
 	collectionFilterQuery string // Filter query for collection view
 	searchFilterQuery     string // Filter query for search results view
 }
@@ -68,6 +69,15 @@ func NewApp() *App {
 		}
 	}
 
+	// Load wants
+	wants, err := collections.LoadWants()
+	if err != nil {
+		// If loading fails, create empty wants
+		wants = &collections.Wants{
+			WantedPrintings: []collections.CardPrintingID{},
+		}
+	}
+
 	a := &App{
 		app:                   app,
 		currentPage:           1,
@@ -82,6 +92,7 @@ func NewApp() *App {
 		sortAscending:         true,
 		settings:              settings,
 		collection:            collection,
+		wants:                 wants,
 		collectionFilterQuery: "", // No filter by default
 		searchFilterQuery:     "", // No filter by default
 	}

@@ -33,6 +33,11 @@ func GetListsFilePath() string {
 	return filepath.Join(GetCollectionsDir(), "lists.json")
 }
 
+// GetWantsFilePath returns the path to the wants file
+func GetWantsFilePath() string {
+	return filepath.Join(GetCollectionsDir(), "wants.json")
+}
+
 // EnsureCollectionsDir creates the collections directory if it doesn't exist
 func EnsureCollectionsDir() error {
 	dir := GetCollectionsDir()

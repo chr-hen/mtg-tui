@@ -1,6 +1,8 @@
 package components
 
 import (
+	"strings"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -52,11 +54,22 @@ func CreateCardListFooter(footerText string) tview.Primitive {
 		innerWidth := width - 2
 		innerHeight := height - 2
 
-		// Draw text centered in the inner area
-		textY := innerY + (innerHeight / 2)
-		if textY >= innerY && textY < innerY+innerHeight && innerHeight > 0 && innerWidth > 0 {
-			// Use Print to draw the text with white color
-			tview.Print(screen, footerTextForDraw, innerX, textY, innerWidth, tview.AlignCenter, tcell.ColorWhite)
+		// Split text by newlines to support multi-line text
+		lines := strings.Split(footerTextForDraw, "\n")
+		numLines := len(lines)
+		
+		if numLines > 0 && innerHeight > 0 && innerWidth > 0 {
+			// Calculate starting Y position to center all lines vertically
+			totalLineHeight := numLines
+			startY := innerY + (innerHeight-totalLineHeight)/2
+			
+			// Draw each line, centered
+			for i, line := range lines {
+				lineY := startY + i
+				if lineY >= innerY && lineY < innerY+innerHeight {
+					tview.Print(screen, line, innerX, lineY, innerWidth, tview.AlignCenter, tcell.ColorWhite)
+				}
+			}
 		}
 
 		return innerX, innerY, innerWidth, innerHeight

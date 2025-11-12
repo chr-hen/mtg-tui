@@ -85,3 +85,32 @@ func (lc *ListsCollection) DeleteList(id string) {
 	}
 }
 
+// AddCard adds a card to the list (or increments quantity if it exists)
+func (l *List) AddCard(setCode, collectorNumber string, quantity int) {
+	cardID := GetCardID(setCode, collectorNumber)
+
+	// Check if already exists
+	for i, card := range l.Cards {
+		existingID := GetCardID(card.SetCode, card.CollectorNumber)
+		if cardID == existingID {
+			// Increment quantity
+			l.Cards[i].Quantity += quantity
+			if l.Cards[i].Quantity <= 0 {
+				l.Cards[i].Quantity = quantity
+			}
+			return
+		}
+	}
+
+	// Add new card
+	newQuantity := quantity
+	if newQuantity <= 0 {
+		newQuantity = 1
+	}
+	l.Cards = append(l.Cards, ListCard{
+		SetCode:         setCode,
+		CollectorNumber: collectorNumber,
+		Quantity:        newQuantity,
+	})
+}
+

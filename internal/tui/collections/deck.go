@@ -245,3 +245,61 @@ type FormatRules struct {
 	MaxCopies        int
 	MaxSideboardSize int
 }
+
+// AddCardToMainDeck adds a card to the main deck (or increments quantity if it exists)
+func (d *Deck) AddCardToMainDeck(setCode, collectorNumber string, quantity int) {
+	cardID := GetCardID(setCode, collectorNumber)
+
+	// Check if already exists
+	for i, card := range d.MainDeck {
+		existingID := GetCardID(card.SetCode, card.CollectorNumber)
+		if cardID == existingID {
+			// Increment quantity
+			d.MainDeck[i].Quantity += quantity
+			if d.MainDeck[i].Quantity <= 0 {
+				d.MainDeck[i].Quantity = quantity
+			}
+			return
+		}
+	}
+
+	// Add new card
+	newQuantity := quantity
+	if newQuantity <= 0 {
+		newQuantity = 1
+	}
+	d.MainDeck = append(d.MainDeck, DeckCard{
+		SetCode:         setCode,
+		CollectorNumber: collectorNumber,
+		Quantity:        newQuantity,
+	})
+}
+
+// AddCardToSideboard adds a card to the sideboard (or increments quantity if it exists)
+func (d *Deck) AddCardToSideboard(setCode, collectorNumber string, quantity int) {
+	cardID := GetCardID(setCode, collectorNumber)
+
+	// Check if already exists
+	for i, card := range d.Sideboard {
+		existingID := GetCardID(card.SetCode, card.CollectorNumber)
+		if cardID == existingID {
+			// Increment quantity
+			d.Sideboard[i].Quantity += quantity
+			if d.Sideboard[i].Quantity <= 0 {
+				d.Sideboard[i].Quantity = quantity
+			}
+			return
+		}
+	}
+
+	// Add new card
+	newQuantity := quantity
+	if newQuantity <= 0 {
+		newQuantity = 1
+	}
+	d.Sideboard = append(d.Sideboard, DeckCard{
+		SetCode:         setCode,
+		CollectorNumber: collectorNumber,
+		Quantity:        newQuantity,
+	})
+}
