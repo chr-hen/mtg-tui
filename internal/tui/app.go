@@ -3,6 +3,7 @@ package tui
 import (
 	"github.com/chr-hen/mtg-tui/internal/api"
 	"github.com/chr-hen/mtg-tui/internal/tui/collections"
+	"github.com/chr-hen/mtg-tui/internal/tui/models"
 	"github.com/chr-hen/mtg-tui/internal/util"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -30,7 +31,7 @@ type App struct {
 	sortField     string // "name", "released", "set", "rarity", "color", "cmc", "power", "toughness"
 	sortAscending bool
 	// Settings
-	settings *Settings
+	settings *models.Settings
 	// Collections
 	collection            *collections.Collection
 	collectionFilterQuery string // Filter query for collection view
@@ -43,10 +44,10 @@ func NewApp() *App {
 	app.EnableMouse(false)
 
 	// Load settings
-	settings, err := LoadSettings()
+	settings, err := models.LoadSettings()
 	if err != nil {
 		// If loading fails, use default settings
-		settings = &Settings{
+		settings = &models.Settings{
 			ShowArenaCards: false,
 			ShowTypeCard:   false,
 			ShowArtCards:   false,

@@ -30,20 +30,16 @@ func (a *App) showSearchFilter() {
 		// Set filter query (empty string means no filter)
 		a.searchFilterQuery = query
 
-		// Reset to first page and reload results with filter
+		// Reset to first page and reload the search view
 		a.currentPage = 1
-		a.loadPageFromCache()
 
-		// Close filter panel and return to card list view
+		// Close filter panel
 		if a.pages.HasPage("search_filter") {
 			a.pages.RemovePage("search_filter")
 		}
-		if a.pages.HasPage("list") {
-			a.pages.SwitchToPage("list")
-			if a.table != nil {
-				a.app.SetFocus(a.table)
-			}
-		}
+
+		// Reload the card list view with new filter
+		a.showCardList()
 	}
 
 	// Store clear callback for Ctrl+D shortcut
@@ -109,20 +105,16 @@ func (a *App) showCollectionFilter() {
 		// Set filter query (empty string means no filter)
 		a.collectionFilterQuery = query
 
-		// Reset to first page and reload collection
+		// Reset to first page and reload the collection view
 		a.currentPage = 1
-		a.loadCollectionPage()
 
-		// Close filter panel and return to collection view
+		// Close filter panel
 		if a.pages.HasPage("collection_filter") {
 			a.pages.RemovePage("collection_filter")
 		}
-		if a.pages.HasPage("collection") {
-			a.pages.SwitchToPage("collection")
-			if a.table != nil {
-				a.app.SetFocus(a.table)
-			}
-		}
+
+		// Reload the collection view with new filter
+		a.showCollection()
 	}
 
 	// Store clear callback for Ctrl+D shortcut

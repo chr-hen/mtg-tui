@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/chr-hen/mtg-tui/internal/api"
+	"github.com/chr-hen/mtg-tui/internal/tui/models"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -81,7 +82,7 @@ func (a *App) showSettingsScreen() {
 		}
 		
 		// Save to file
-		if err := SaveSettings(a.settings); err != nil {
+		if err := models.SaveSettings(a.settings); err != nil {
 			// Show error modal
 			errorModal := tview.NewModal().
 				SetText(fmt.Sprintf("Error saving settings: %v", err)).
