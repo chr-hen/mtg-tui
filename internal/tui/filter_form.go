@@ -54,7 +54,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Name
 	fields.Name = tview.NewInputField()
 	fields.Name.SetLabel("Name: ")
-	fields.Name.SetFieldWidth(30)
+	fields.Name.SetFieldWidth(40)
 	fields.Name.SetPlaceholder("Card name (e.g., Lightning Bolt)")
 	fields.Name.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Name.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -73,7 +73,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Color
 	fields.Color = tview.NewInputField()
 	fields.Color.SetLabel("Color: ")
-	fields.Color.SetFieldWidth(30)
+	fields.Color.SetFieldWidth(40)
 	fields.Color.SetPlaceholder("c:r or c:uw (w/u/b/r/g)")
 	fields.Color.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Color.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -81,7 +81,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Oracle Text
 	fields.Oracle = tview.NewInputField()
 	fields.Oracle.SetLabel("Oracle Text: ")
-	fields.Oracle.SetFieldWidth(30)
+	fields.Oracle.SetFieldWidth(40)
 	fields.Oracle.SetPlaceholder("o:\"draw a card\"")
 	fields.Oracle.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Oracle.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -89,7 +89,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Mana Cost
 	fields.Mana = tview.NewInputField()
 	fields.Mana.SetLabel("Mana Cost: ")
-	fields.Mana.SetFieldWidth(30)
+	fields.Mana.SetFieldWidth(40)
 	fields.Mana.SetPlaceholder("m:{G}{U} or mv<=3")
 	fields.Mana.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Mana.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -97,7 +97,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Power
 	fields.Power = tview.NewInputField()
 	fields.Power.SetLabel("Power: ")
-	fields.Power.SetFieldWidth(30)
+	fields.Power.SetFieldWidth(40)
 	fields.Power.SetPlaceholder("pow>=4 or pow>tou")
 	fields.Power.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Power.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -105,7 +105,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Toughness
 	fields.Toughness = tview.NewInputField()
 	fields.Toughness.SetLabel("Toughness: ")
-	fields.Toughness.SetFieldWidth(30)
+	fields.Toughness.SetFieldWidth(40)
 	fields.Toughness.SetPlaceholder("tou>=4")
 	fields.Toughness.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Toughness.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -113,7 +113,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Set
 	fields.Set = tview.NewInputField()
 	fields.Set.SetLabel("Set: ")
-	fields.Set.SetFieldWidth(30)
+	fields.Set.SetFieldWidth(40)
 	fields.Set.SetPlaceholder("s:khm (autocomplete available)")
 	fields.Set.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Set.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -124,7 +124,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Rarity
 	fields.Rarity = tview.NewInputField()
 	fields.Rarity.SetLabel("Rarity: ")
-	fields.Rarity.SetFieldWidth(30)
+	fields.Rarity.SetFieldWidth(40)
 	fields.Rarity.SetPlaceholder("r:rare (autocomplete available)")
 	fields.Rarity.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Rarity.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -135,7 +135,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Year
 	fields.Year = tview.NewInputField()
 	fields.Year.SetLabel("Year: ")
-	fields.Year.SetFieldWidth(30)
+	fields.Year.SetFieldWidth(40)
 	fields.Year.SetPlaceholder("year>=2020")
 	fields.Year.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Year.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -143,7 +143,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Artist
 	fields.Artist = tview.NewInputField()
 	fields.Artist.SetLabel("Artist: ")
-	fields.Artist.SetFieldWidth(30)
+	fields.Artist.SetFieldWidth(40)
 	fields.Artist.SetPlaceholder("a:avon")
 	fields.Artist.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Artist.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -151,7 +151,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Keyword
 	fields.Keyword = tview.NewInputField()
 	fields.Keyword.SetLabel("Keyword: ")
-	fields.Keyword.SetFieldWidth(30)
+	fields.Keyword.SetFieldWidth(40)
 	fields.Keyword.SetPlaceholder("kw:flying (autocomplete available)")
 	fields.Keyword.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Keyword.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
@@ -162,7 +162,7 @@ func (a *App) createFilterForm(config FilterFormConfig) (*tview.Form, *FilterFor
 	// Special flags
 	fields.Is = tview.NewInputField()
 	fields.Is.SetLabel("Is: ")
-	fields.Is.SetFieldWidth(30)
+	fields.Is.SetFieldWidth(40)
 	fields.Is.SetPlaceholder("is:multicolor, is:spell, is:permanent")
 	fields.Is.SetPlaceholderTextColor(tcell.ColorGray)
 	fields.Is.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
