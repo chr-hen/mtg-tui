@@ -36,6 +36,7 @@ type App struct {
 	collection            *collections.Collection
 	wants                 *collections.Wants
 	collectionFilterQuery string // Filter query for collection view
+	wantsFilterQuery      string // Filter query for wants view
 	searchFilterQuery     string // Filter query for search results view
 }
 
@@ -94,6 +95,7 @@ func NewApp() *App {
 		collection:            collection,
 		wants:                 wants,
 		collectionFilterQuery: "", // No filter by default
+		wantsFilterQuery:      "", // No filter by default
 		searchFilterQuery:     "", // No filter by default
 	}
 

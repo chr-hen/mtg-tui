@@ -77,6 +77,43 @@ func (a *App) applySearchFilters(cards []api.Card) ([]api.Card, error) {
 	return applyCardFilters(cards, a.searchFilterQuery)
 }
 
+// getWantsCards filters all cards to only those wanted in the wants list
+func (a *App) getWantsCards() ([]api.Card, error) {
+	wantedPrintings := a.wants.WantedPrintings
+	if len(wantedPrintings) == 0 {
+		return []api.Card{}, nil
+	}
+
+	// Load all cards from cache
+	allCards, err := api.LoadCardsFromCache()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a map of wanted printings for quick lookup
+	wantedMap := make(map[string]bool)
+	for _, wanted := range wantedPrintings {
+		cardID := collections.GetCardID(wanted.SetCode, wanted.CollectorNumber)
+		wantedMap[cardID] = true
+	}
+
+	// Filter cards to only wanted printings
+	var wantedCards []api.Card
+	for _, card := range allCards {
+		cardID := collections.GetCardID(card.SetCode, card.CollectorNumber)
+		if wantedMap[cardID] {
+			wantedCards = append(wantedCards, card)
+		}
+	}
+
+	return wantedCards, nil
+}
+
+// applyWantsFilters applies the current wants filter query to cards
+func (a *App) applyWantsFilters(cards []api.Card) ([]api.Card, error) {
+	return applyCardFilters(cards, a.wantsFilterQuery)
+}
+
 // preloadCollectionCards pre-loads collection cards in the background
 func (a *App) preloadCollectionCards() {
 	// Get collection cards

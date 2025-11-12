@@ -153,3 +153,78 @@ func (a *App) showCollectionFilter() {
 	a.pages.SwitchToPage("collection_filter")
 	a.app.SetFocus(form)
 }
+
+// showWantsFilter displays a filter panel for the wants view
+func (a *App) showWantsFilter() {
+	// Remove old filter page to prevent artifacts
+	a.pages.RemovePage("wants_filter")
+
+	// Autocomplete data should already be pre-loaded in background
+	// Check in background if data needs loading (non-blocking)
+	go func() {
+		if len(a.uniqueTypes) == 0 && len(a.uniqueSets) == 0 {
+			// Data not loaded yet, load it in background (won't block UI)
+			a.loadAutocompleteData()
+		}
+	}()
+
+	// Create filter form using shared logic
+	form, fields := a.createFilterForm(FilterFormConfig{
+		Title: "Filter Wants",
+	})
+
+	// Store filter callback for Enter key shortcut
+	filterCallback := func() {
+		query := buildQueryFromFields(fields)
+
+		// Set filter query (empty string means no filter)
+		a.wantsFilterQuery = query
+
+		// Reset to first page and reload the wants view
+		a.currentPage = 1
+
+		// Close filter panel
+		if a.pages.HasPage("wants_filter") {
+			a.pages.RemovePage("wants_filter")
+		}
+
+		// Reload the wants view with new filter
+		a.showWants()
+	}
+
+	// Store clear callback for Ctrl+D shortcut
+	clearCallback := func() {
+		clearFilterFields(fields)
+	}
+
+	// Store back callback for ESC key shortcut
+	backCallback := func() {
+		// Close filter panel and return to wants view
+		if a.pages.HasPage("wants_filter") {
+			a.pages.RemovePage("wants_filter")
+		}
+		if a.pages.HasPage("wants") {
+			a.pages.SwitchToPage("wants")
+			if a.table != nil {
+				a.app.SetFocus(a.table)
+			}
+		}
+	}
+
+	form.AddButton("Apply Filter (Enter)", filterCallback)
+	form.AddButton("Clear (Ctrl+D)", clearCallback)
+	form.AddButton("Back (Esc)", backCallback)
+
+	// Set up input handling using shared function
+	a.setupFilterFormInputHandling(form, fields, filterCallback, clearCallback, backCallback)
+
+	// Center the form horizontally only (keep vertical alignment consistent)
+	horizontalFlex := tview.NewFlex().
+		AddItem(nil, 0, 1, false).  // Left spacer
+		AddItem(form, 90, 0, true). // Form (fixed width, horizontally centered)
+		AddItem(nil, 0, 1, false)   // Right spacer
+
+	a.pages.AddPage("wants_filter", horizontalFlex, true, true)
+	a.pages.SwitchToPage("wants_filter")
+	a.app.SetFocus(form)
+}

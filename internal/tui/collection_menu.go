@@ -20,15 +20,18 @@ func (a *App) showCollectionMenu() {
 	// Store callbacks
 	callbacks := []func(){
 		func() { a.showCollection() }, // My Cards - existing collection view
+		func() { a.showWants() },      // My Wants - wanted cards view
 		func() { a.showDecksList() },  // My Decks - list of decks
 		func() { a.showListsList() },  // My Lists - list of cubes/lists
 	}
 
 	menu.AddItem("My Cards", "View your owned cards", 'c', callbacks[0]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("My Decks", "View and manage your decks", 'd', callbacks[1]).
+		AddItem("My Wants", "View your wanted cards", 'w', callbacks[1]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("My Lists", "View and manage your lists", 'l', callbacks[2]).
+		AddItem("My Decks", "View and manage your decks", 'd', callbacks[2]).
+		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
+		AddItem("My Lists", "View and manage your lists", 'l', callbacks[3]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
 		AddItem("Back", "Return to main menu", 'b', func() {
 			if a.pages.HasPage("collection_menu") {
@@ -75,10 +78,12 @@ func (a *App) showCollectionMenu() {
 		if index == 0 {
 			a.showCollection()
 		} else if index == 2 {
-			a.showDecksList()
+			a.showWants()
 		} else if index == 4 {
-			a.showListsList()
+			a.showDecksList()
 		} else if index == 6 {
+			a.showListsList()
+		} else if index == 8 {
 			// Back button
 			if a.pages.HasPage("collection_menu") {
 				a.pages.RemovePage("collection_menu")
