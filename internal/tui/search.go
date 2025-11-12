@@ -7,154 +7,9 @@ import (
 	"github.com/rivo/tview"
 )
 
-func (a *App) showSearchInput() {
-	// Remove old search page to prevent artifacts
-	a.pages.RemovePage("search")
-
-	form := tview.NewForm()
-	form.SetTitle(" [yellow]Search for Card[white] ")
-	form.SetBorder(true)
-	form.SetBorderColor(tcell.ColorYellow)
-	form.SetTitleColor(tcell.ColorYellow)
-	form.SetBackgroundColor(tcell.ColorBlack)
-	form.SetButtonTextColor(tcell.ColorBlack)
-	form.SetButtonBackgroundColor(tcell.ColorYellow)
-	form.SetLabelColor(tcell.ColorWhite)
-	form.SetFieldTextColor(tcell.ColorWhite)
-	form.SetFieldBackgroundColor(tcell.ColorDarkGray)
-
-	searchInput := tview.NewInputField()
-	searchInput.SetLabel("Search: ")
-	searchInput.SetFieldWidth(35)
-	// Use smaller label width to center the field within the form
-	searchInput.SetFormAttributes(10, tcell.ColorWhite, tcell.ColorBlack, tcell.ColorWhite, tcell.ColorDarkGray)
-	searchInput.SetPlaceholder("Enter card name or search query (e.g., 'Lightning Bolt' or 'type:creature')")
-	searchInput.SetPlaceholderTextColor(tcell.ColorGray)
-
-	form.AddFormItem(searchInput)
-
-	// Vim-style insert mode state
-	insertMode := false
-	currentFieldIndex := 0 // 0 = input field, 1+ = buttons
-
-	// Force form to apply field colors after adding item
-	form.SetFieldTextColor(tcell.ColorWhite)
-	form.SetFieldBackgroundColor(tcell.ColorDarkGray)
-
-	// Store search callback for Enter key shortcut
-	searchCallback := func() {
-		query := strings.TrimSpace(searchInput.GetText())
-		if query == "" {
-			// Show warning modal instead of crashing
-			modal := tview.NewModal().
-				SetText("Please enter a search query.\n\nA card name or search query is required.").
-				AddButtons([]string{"OK"}).
-				SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-					a.pages.RemovePage("warning")
-					// Return focus to the search form
-					a.app.SetFocus(form)
-				})
-			a.pages.AddPage("warning", modal, true, true)
-			return
-		}
-		a.currentQuery = query
-		a.currentPage = 1
-		a.showCardList()
-	}
-
-	// Store back callback for ESC key shortcut
-	backCallback := func() {
-		// Remove the search page first
-		if a.pages.HasPage("search") {
-			a.pages.RemovePage("search")
-		}
-		// Force a full redraw by recreating the menu
-		a.showMainMenu()
-	}
-
-	form.AddButton("Search (Enter)", searchCallback)
-	form.AddButton("Back (Esc)", backCallback)
-
-	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		// In insert mode, allow normal input except ESC to exit
-		if insertMode {
-			if event.Key() == tcell.KeyEscape {
-				// ESC exits insert mode
-				insertMode = false
-				// Update title to show normal mode
-				form.SetTitle(" [yellow]Search for Card[white] ")
-				return nil
-			}
-			// Allow all other input in insert mode
-			return event
-		}
-
-		// Normal mode - handle navigation and mode switching
-		if event.Key() == tcell.KeyEscape {
-			// ESC goes back to menu
-			if a.pages.HasPage("search") {
-				a.pages.RemovePage("search")
-			}
-			if a.pages.HasPage("menu") {
-				a.pages.SwitchToPage("menu")
-				if a.menu != nil {
-					a.app.SetFocus(a.menu)
-				}
-			} else {
-				a.showMainMenu()
-			}
-			return nil
-		}
-		if event.Key() == tcell.KeyEnter {
-			// Enter triggers Search button
-			searchCallback()
-			return nil
-		}
-		if event.Key() == tcell.KeyRune {
-			switch event.Rune() {
-			case 'i':
-				// Enter insert mode
-				insertMode = true
-				form.SetTitle(" [yellow]Search for Card[white] [gray](INSERT)[white] ")
-				// Set focus to the input field for immediate editing
-				a.app.SetFocus(searchInput)
-				return nil
-			case 'j':
-				// Move to next field (or button)
-				if currentFieldIndex == 0 {
-					currentFieldIndex = 1
-					form.SetFocus(1) // Move to Search button
-				}
-				return nil
-			case 'k':
-				// Move to previous field (or button)
-				if currentFieldIndex > 0 {
-					currentFieldIndex = 0
-					form.SetFocus(0) // Move to input field
-				}
-				return nil
-			}
-			// Block all other text input in normal mode
-			return nil
-		}
-		// Allow Tab/Shift+Tab for navigation
-		return event
-	})
-
-	// Center the form horizontally only (keep vertical alignment consistent)
-	horizontalFlex := tview.NewFlex().
-		AddItem(nil, 0, 1, false).  // Left spacer
-		AddItem(form, 70, 0, true). // Form (fixed width, horizontally centered)
-		AddItem(nil, 0, 1, false)   // Right spacer
-
-	a.pages.AddPage("search", horizontalFlex, true, true)
-	a.pages.SwitchToPage("search")
-	a.app.SetFocus(form)
-}
-
-func (a *App) showAdvancedSearch() {
+func (a *App) showSearch() {
 	// Remove old advanced page to prevent artifacts
-	a.pages.RemovePage("advanced")
+	a.pages.RemovePage("search")
 
 	// Autocomplete data should already be pre-loaded in background
 	// If not ready yet, form will work without autocomplete and it will be available on next open
@@ -167,7 +22,7 @@ func (a *App) showAdvancedSearch() {
 	}()
 
 	form := tview.NewForm()
-	form.SetTitle(" [yellow]Advanced Search (Scryfall Syntax)[white] ")
+	form.SetTitle(" [yellow]Search[white] ")
 	form.SetBorder(true)
 	form.SetBorderColor(tcell.ColorYellow)
 	form.SetTitleColor(tcell.ColorYellow)
@@ -464,9 +319,9 @@ func (a *App) showAdvancedSearch() {
 	// Helper function to update title based on mode
 	updateTitle := func() {
 		if insertMode {
-			form.SetTitle(" [yellow]Advanced Search (Scryfall Syntax)[white] [gray](INSERT)[white] ")
+			form.SetTitle(" [yellow]Search[white] [gray](INSERT)[white] ")
 		} else {
-			form.SetTitle(" [yellow]Advanced Search (Scryfall Syntax)[white] ")
+			form.SetTitle(" [yellow]Search[white] ")
 		}
 	}
 
@@ -488,8 +343,8 @@ func (a *App) showAdvancedSearch() {
 		// Normal mode - handle navigation and mode switching
 		if event.Key() == tcell.KeyEscape {
 			// ESC goes back to menu
-			if a.pages.HasPage("advanced") {
-				a.pages.RemovePage("advanced")
+			if a.pages.HasPage("search") {
+				a.pages.RemovePage("search")
 			}
 			if a.pages.HasPage("menu") {
 				a.pages.SwitchToPage("menu")
@@ -562,7 +417,7 @@ func (a *App) showAdvancedSearch() {
 		AddItem(form, 90, 0, true). // Form (fixed width, wider for advanced, horizontally centered)
 		AddItem(nil, 0, 1, false)   // Right spacer
 
-	a.pages.AddPage("advanced", horizontalFlex, true, true)
-	a.pages.SwitchToPage("advanced")
+	a.pages.AddPage("search", horizontalFlex, true, true)
+	a.pages.SwitchToPage("search")
 	a.app.SetFocus(form)
 }

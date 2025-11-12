@@ -15,9 +15,6 @@ func (a *App) showMainMenu() {
 	if a.pages.HasPage("search") {
 		a.pages.RemovePage("search")
 	}
-	if a.pages.HasPage("advanced") {
-		a.pages.RemovePage("advanced")
-	}
 
 	asciiArt := `
   __  __ _____ ____   _____ _   _ ___ 
@@ -45,9 +42,7 @@ func (a *App) showMainMenu() {
 
 	// Store callbacks for later use
 	callbacks := []func(){
-		func() { a.showSearchInput() },
-		nil, // separator
-		func() { a.showAdvancedSearch() },
+		func() { a.showSearch() },
 		nil, // separator
 		func() { a.showCollectionMenu() },
 		nil, // separator
@@ -56,15 +51,13 @@ func (a *App) showMainMenu() {
 		func() { a.app.Stop() },
 	}
 
-	menu.AddItem("Search for Card", "Enter a card name or search query", 's', callbacks[0]).
+	menu.AddItem("Search", "Use Scryfall syntax for detailed filtering", 's', callbacks[0]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("Advanced Search", "Use Scryfall syntax for detailed filtering", 'a', callbacks[2]).
+		AddItem("My Collection", "Manage your cards, decks, and lists", 'm', callbacks[2]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("My Collection", "Manage your cards, decks, and lists", 'm', callbacks[4]).
+		AddItem("Settings", "Configure application preferences", 'c', callbacks[4]).
 		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("Settings", "Configure application preferences", 'c', callbacks[6]).
-		AddItem("[gray]─────────────────────────────[white]", "", 0, nil).
-		AddItem("Quit", "Exit the application", 'q', callbacks[8])
+		AddItem("Quit", "Exit the application", 'q', callbacks[6])
 
 	menu.SetBorder(true).
 		SetTitle(" [yellow]Navigation[white] ").
@@ -91,12 +84,14 @@ func (a *App) showMainMenu() {
 		if index < len(callbacks) && callbacks[index] != nil {
 			callbacks[index]()
 		} else {
-			// Handle direct index mapping for menu items
+			// Handle direct index mapping for menu items (fallback)
 			if index == 0 {
-				a.showSearchInput()
+				a.showSearch()
 			} else if index == 2 {
-				a.showAdvancedSearch()
+				a.showCollectionMenu()
 			} else if index == 4 {
+				a.showSettingsScreen()
+			} else if index == 6 {
 				a.app.Stop()
 			}
 		}
