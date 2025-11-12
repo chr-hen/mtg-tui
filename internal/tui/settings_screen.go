@@ -29,6 +29,12 @@ func (a *App) showSettingsScreen() {
 	form.AddCheckbox("Include cards with type \"card\"", typeCardValue, func(checked bool) {
 		typeCardValue = checked
 	})
+	
+	// Track checkbox state for art cards
+	artCardsValue := a.settings.ShowArtCards
+	form.AddCheckbox("Show art cards", artCardsValue, func(checked bool) {
+		artCardsValue = checked
+	})
 
 	// Add buttons
 	form.AddButton("Save", func() {
@@ -36,6 +42,7 @@ func (a *App) showSettingsScreen() {
 		// The closures capture the values, so they will have the latest values
 		a.settings.ShowArenaCards = arenaCardsValue
 		a.settings.ShowTypeCard = typeCardValue
+		a.settings.ShowArtCards = artCardsValue
 		
 		// Save to file
 		if err := SaveSettings(a.settings); err != nil {

@@ -18,7 +18,7 @@ type CardGroup struct {
 
 // GroupCardsByName groups cards by their name, collecting all printings
 // Note: This function preserves the order of cards as they appear in the input slice
-func GroupCardsByName(cards []api.Card, showArenaCards bool, showTypeCard bool) []CardGroup {
+func GroupCardsByName(cards []api.Card, showArenaCards bool, showTypeCard bool, showArtCards bool) []CardGroup {
 	groupsMap := make(map[string]*CardGroup)
 
 	for _, card := range cards {
@@ -29,6 +29,11 @@ func GroupCardsByName(cards []api.Card, showArenaCards bool, showTypeCard bool) 
 
 		// Filter out cards with type "card" if setting is disabled
 		if !showTypeCard && IsTypeCard(card.TypeLine) {
+			continue
+		}
+
+		// Filter out art cards if setting is disabled
+		if !showArtCards && IsArtCard(card.TypeLine) {
 			continue
 		}
 
@@ -56,6 +61,9 @@ func GroupCardsByName(cards []api.Card, showArenaCards bool, showTypeCard bool) 
 			continue
 		}
 		if !showTypeCard && IsTypeCard(card.TypeLine) {
+			continue
+		}
+		if !showArtCards && IsArtCard(card.TypeLine) {
 			continue
 		}
 		
@@ -124,6 +132,11 @@ func IsArenaCard(cardName string) bool {
 // IsTypeCard checks if a card's type line is exactly "card"
 func IsTypeCard(typeLine string) bool {
 	return strings.ToLower(strings.TrimSpace(typeLine)) == "card"
+}
+
+// IsArtCard checks if a card's type line is "Card // Card" (art cards)
+func IsArtCard(typeLine string) bool {
+	return strings.TrimSpace(typeLine) == "Card // Card"
 }
 
 // SortCards sorts cards according to the specified sort field and direction

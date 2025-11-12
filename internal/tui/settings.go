@@ -11,6 +11,7 @@ import (
 type Settings struct {
 	ShowArenaCards bool `json:"show_arena_cards"` // Show cards with names starting with "A-"
 	ShowTypeCard   bool `json:"show_type_card"`   // Show cards with type "card"
+	ShowArtCards   bool `json:"show_art_cards"`   // Show art cards with type "Card // Card"
 }
 
 // GetSettingsFilePath returns the path to the settings file
@@ -29,6 +30,7 @@ func LoadSettings() (*Settings, error) {
 		return &Settings{
 			ShowArenaCards: false, // Default to hiding Arena cards
 			ShowTypeCard:   false, // Default to hiding cards with type "card"
+			ShowArtCards:   false, // Default to hiding art cards
 		}, nil
 	}
 	

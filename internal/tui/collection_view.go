@@ -99,7 +99,7 @@ func (a *App) showCollection() {
 	}
 
 	// Group filtered cards by name
-	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
+	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard, a.settings.ShowArtCards)
 
 	// Set up for display
 	a.currentQuery = "collection"
@@ -444,7 +444,7 @@ func (a *App) loadCollectionPage() {
 	}
 
 	// Group filtered cards by name
-	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard)
+	cardGroups := util.GroupCardsByName(filteredCards, a.settings.ShowArenaCards, a.settings.ShowTypeCard, a.settings.ShowArtCards)
 
 	// Use unified pagination
 	pageSize := 10
